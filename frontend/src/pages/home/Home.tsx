@@ -4,684 +4,878 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
+  BarChart3,
+  Bell,
   BrainCircuit,
+  Check,
   CheckCircle2,
   ChevronDown,
   CircleAlert,
+  Clock3,
+  CreditCard,
   FileCheck2,
   FileText,
   Fingerprint,
   Gauge,
   Globe2,
+  Landmark,
+  LockKeyhole,
   Menu,
   Network,
   Play,
+  Search,
   ShieldCheck,
   Sparkles,
+  Target,
+  TrendingDown,
   TrendingUp,
   UserCheck,
   Users,
+  Workflow,
   X,
-  Zap,
 } from "lucide-react";
 
 import "./Home.css";
 
-const capabilityCards = [
+const capabilities = [
   {
-    number: "01",
     icon: FileCheck2,
-    title: "Document Intelligence",
+    eyebrow: "DOCUMENT INTELLIGENCE",
+    title: "Understand every document.",
     description:
-      "Extract, validate and understand application documents automatically while reducing manual review effort.",
-    points: [
-      "AI-powered extraction",
-      "Document quality checks",
+      "Convert application documents into structured, validated information while reducing repetitive manual review.",
+    features: [
+      "AI extraction & classification",
       "Missing document detection",
+      "Quality & consistency checks",
     ],
-    accent: "jade",
   },
   {
-    number: "02",
-    icon: BrainCircuit,
-    title: "AI Credit Intelligence",
+    icon: CreditCard,
+    eyebrow: "CREDIT INTELLIGENCE",
+    title: "See the complete credit picture.",
     description:
-      "Turn applicant information, financial data and credit history into actionable credit intelligence.",
-    points: [
+      "Bring income, obligations, credit history and financial signals together in one decision-ready workspace.",
+    features: [
       "Credit profile analysis",
-      "Income & obligation insights",
+      "Income & obligation analysis",
       "Explainable recommendations",
     ],
-    accent: "gold",
   },
   {
-    number: "03",
     icon: ShieldCheck,
-    title: "Risk & Fraud Intelligence",
+    eyebrow: "RISK INTELLIGENCE",
+    title: "Identify risk before decisions.",
     description:
-      "Identify risk signals, inconsistencies and potential fraud indicators before decisions are finalized.",
-    points: [
+      "Surface inconsistencies, anomalies and risk signals before they become expensive credit decisions.",
+    features: [
       "Multi-dimensional risk scoring",
       "Anomaly detection",
       "Explainable risk factors",
     ],
-    accent: "terracotta",
   },
   {
-    number: "04",
     icon: UserCheck,
-    title: "Intelligent Underwriting",
+    eyebrow: "UNDERWRITING",
+    title: "Empower better decisions.",
     description:
-      "Give underwriters a complete decision workspace with AI-assisted analysis and policy-aware recommendations.",
-    points: [
-      "AI underwriting assistant",
-      "Policy validation",
-      "Human-in-the-loop decisions",
+      "Give underwriters a complete view of the applicant with AI-assisted analysis and policy-aware recommendations.",
+    features: [
+      "Decision-ready workspace",
+      "Policy-aware recommendations",
+      "Human-in-the-loop controls",
     ],
-    accent: "jade",
   },
 ];
 
-const workflowSteps = [
+const workflow = [
   {
     number: "01",
-    title: "Capture",
-    description: "Collect application and customer information.",
+    title: "Originate",
+    text: "Capture applications and customer information.",
   },
   {
     number: "02",
-    title: "Understand",
-    description: "Extract and structure information with AI.",
+    title: "Verify",
+    text: "Validate identity, documents and financial information.",
   },
   {
     number: "03",
     title: "Assess",
-    description: "Evaluate credit, risk and verification signals.",
+    text: "Evaluate credit, risk and repayment capacity.",
   },
   {
     number: "04",
     title: "Decide",
-    description: "Support intelligent underwriting and approvals.",
+    text: "Support underwriting and approval decisions.",
   },
   {
     number: "05",
-    title: "Disburse",
-    description: "Move approved applications toward fulfillment.",
+    title: "Fulfil",
+    text: "Complete agreements and move toward disbursement.",
   },
 ];
 
-const governanceItems = [
+const enterpriseFeatures = [
   {
     icon: Users,
-    title: "Role-based access",
-    description:
-      "Give every team member access to exactly what they need based on their role and responsibilities.",
+    title: "Role-based operations",
+    text: "Give every team the right workspace, permissions and actions.",
   },
   {
-    icon: Network,
-    title: "Approval controls",
-    description:
-      "Create structured approval journeys with configurable authority levels and decision controls.",
+    icon: LockKeyhole,
+    title: "Controlled decisioning",
+    text: "Configure approval authorities, escalation paths and decision controls.",
   },
   {
     icon: Fingerprint,
-    title: "Audit-ready history",
-    description:
-      "Maintain a transparent record of application activity, decisions, changes and user actions.",
+    title: "Complete audit trail",
+    text: "Track decisions, changes, actions and application history.",
   },
   {
     icon: Globe2,
-    title: "Global-ready",
-    description:
-      "Design processes for multiple languages, regions, products and operational requirements.",
+    title: "Built for scale",
+    text: "Support products, branches, regions, teams and multilingual operations.",
+  },
+];
+
+const navItems = [
+  {
+    label: "Platform",
+    id: "platform",
+  },
+  {
+    label: "Intelligence",
+    id: "intelligence",
+  },
+  {
+    label: "Workflow",
+    id: "workflow",
+  },
+  {
+    label: "Enterprise",
+    id: "enterprise",
   },
 ];
 
 function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const { scrollYProgress } = useScroll();
 
-  const heroY = useTransform(scrollYProgress, [0, 0.25], [0, -80]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const heroY = useTransform(
+    scrollYProgress,
+    [0, 0.25],
+    [0, -65],
+  );
+
+  const heroOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.2],
+    [1, 0.25],
+  );
 
   const scrollToSection = (id: string) => {
-    setMobileMenuOpen(false);
+    setMobileOpen(false);
 
     const element = document.getElementById(id);
 
     if (!element) return;
 
-    const navHeight = 86;
+    const offset = 84;
 
-    const targetPosition =
+    const position =
       element.getBoundingClientRect().top +
       window.scrollY -
-      navHeight;
+      offset;
 
     window.scrollTo({
-      top: targetPosition,
+      top: position,
       behavior: "smooth",
     });
   };
 
   return (
     <div className="home-page">
-      {/* Background */}
-      <div className="home-background">
-        <div className="background-orb orb-one" />
-        <div className="background-orb orb-two" />
-        <div className="background-grid" />
+      <div className="home-ambient">
+        <div className="ambient-grid" />
+        <div className="ambient-glow glow-one" />
+        <div className="ambient-glow glow-two" />
+        <div className="ambient-glow glow-three" />
       </div>
 
-      {/* Navigation */}
-      <header className="home-nav">
-        <div className="home-nav-inner">
+      {/* HEADER */}
+      <header className="home-header">
+        <div className="home-header-inner">
           <button
-            className="home-brand"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            aria-label="Credora home"
+            className="home-logo"
+            onClick={() =>
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              })
+            }
           >
-            <div className="brand-mark">
+            <div className="logo-symbol">
               <span />
               <span />
               <span />
             </div>
 
-            <div className="brand-copy">
+            <div className="logo-text">
               <strong>Credora</strong>
-              <span>Credit Intelligence</span>
+              <small>Credit Operations Platform</small>
             </div>
           </button>
 
-          <nav className={`home-nav-links ${mobileMenuOpen ? "open" : ""}`}>
-            <button onClick={() => scrollToSection("platform")}>
-              Platform
-            </button>
+          <nav
+            className={`main-nav ${
+              mobileOpen ? "mobile-open" : ""
+            }`}
+          >
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
 
-            <button onClick={() => scrollToSection("intelligence")}>
-              Intelligence
-            </button>
-
-            <button onClick={() => scrollToSection("workflow")}>
-              Workflow
-            </button>
-
-            <button onClick={() => scrollToSection("governance")}>
-              Governance
-            </button>
-
-            <button
-              className="mobile-nav-cta"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                window.location.href = "/login";
-              }}
+            <Link
+              to="/login"
+              className="mobile-enter-button"
+              onClick={() => setMobileOpen(false)}
             >
-              Enter Credora
-              <ArrowRight size={16} />
-            </button>
+              Open workspace
+              <ArrowRight size={17} />
+            </Link>
           </nav>
 
-          <div className="home-nav-actions">
-            <Link to="/login" className="nav-login">
+          <div className="header-actions">
+            <Link to="/login" className="header-signin">
               Sign in
             </Link>
 
-            <Link to="/login" className="nav-cta">
-              Enter Credora
+            <Link to="/login" className="header-enter">
+              Open workspace
               <ArrowRight size={16} />
             </Link>
           </div>
 
           <button
-            className="mobile-menu-button"
-            onClick={() => setMobileMenuOpen((value) => !value)}
+            className="mobile-menu"
+            onClick={() => setMobileOpen((value) => !value)}
             aria-label="Toggle navigation"
-            aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileOpen ? <X size={23} /> : <Menu size={23} />}
           </button>
         </div>
       </header>
 
-      {/* Hero */}
       <main>
+        {/* HERO */}
         <motion.section
-          className="hero-section"
-          style={{ y: heroY, opacity: heroOpacity }}
+          className="hero"
+          style={{
+            y: heroY,
+            opacity: heroOpacity,
+          }}
         >
-          <div className="hero-container">
-            <div className="hero-content">
+          <div className="hero-inner">
+            <div className="hero-copy">
               <motion.div
-                className="eyebrow"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+                className="enterprise-label"
+                initial={{
+                  opacity: 0,
+                  y: 15,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.5,
+                }}
               >
-                <span className="eyebrow-dot" />
-                Intelligent Credit Operations
+                <span className="status-pulse" />
+                INTELLIGENT CREDIT OPERATIONS
               </motion.div>
 
               <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.75, delay: 0.1 }}
+                initial={{
+                  opacity: 0,
+                  y: 25,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.75,
+                  delay: 0.08,
+                }}
               >
-                Make every credit
-                <span className="hero-gradient-text">
-                  {" "}
-                  decision more intelligent.
-                </span>
+                One operating system
+                <span>for every credit decision.</span>
               </motion.h1>
 
               <motion.p
-                className="hero-description"
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
+                className="hero-text"
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.65,
+                  delay: 0.18,
+                }}
               >
-                Credora brings applications, documents, verification,
-                credit, risk, underwriting and approvals into one
-                intelligent operating environment.
+                Credora connects loan origination, documents,
+                verification, credit, risk, underwriting, approvals
+                and disbursement in one intelligent enterprise
+                workspace.
               </motion.p>
 
               <motion.div
-                className="hero-actions"
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.3 }}
+                className="hero-buttons"
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.65,
+                  delay: 0.28,
+                }}
               >
-                <Link to="/login" className="primary-button">
-                  Explore Credora
+                <Link
+                  to="/login"
+                  className="hero-primary"
+                >
+                  Enter Credora
                   <ArrowRight size={18} />
                 </Link>
 
                 <button
-                  className="secondary-button"
-                  onClick={() => scrollToSection("intelligence")}
+                  className="hero-secondary"
+                  onClick={() =>
+                    scrollToSection("platform")
+                  }
                 >
-                  <span className="play-icon">
-                    <Play size={13} fill="currentColor" />
-                  </span>
-                  See how it works
+                  <Play size={14} fill="currentColor" />
+                  Explore platform
                 </button>
               </motion.div>
 
               <motion.div
-                className="hero-trust"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.55 }}
+                className="hero-proof"
+                initial={{
+                  opacity: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                }}
+                transition={{
+                  duration: 0.8,
+                  delay: 0.45,
+                }}
               >
-                <div className="trust-avatars">
-                  <span>AK</span>
-                  <span>RS</span>
-                  <span>MJ</span>
-                  <span>+</span>
+                <div>
+                  <CheckCircle2 size={18} />
+                  Human-controlled decisions
                 </div>
 
                 <div>
-                  <strong>Built for modern credit teams</strong>
-                  <p>
-                    Operations · Credit · Risk · Underwriting ·
-                    Leadership
-                  </p>
+                  <CheckCircle2 size={18} />
+                  Complete application visibility
                 </div>
               </motion.div>
             </div>
 
-            {/* Product Preview */}
+            {/* DASHBOARD */}
             <motion.div
-              className="hero-product"
-              initial={{ opacity: 0, x: 60, scale: 0.96 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
+              className="hero-dashboard-wrap"
+              initial={{
+                opacity: 0,
+                x: 65,
+                scale: 0.96,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                scale: 1,
+              }}
               transition={{
                 duration: 0.9,
-                delay: 0.2,
+                delay: 0.15,
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
-              <div className="product-glow" />
+              <div className="dashboard-glow" />
 
-              <div className="dashboard-window">
-                <div className="window-topbar">
-                  <div className="window-brand">
-                    <div className="mini-brand-mark">
+              <div className="enterprise-dashboard">
+                <div className="dashboard-top">
+                  <div className="dashboard-brand">
+                    <div className="dashboard-logo">
+                      <span />
                       <span />
                       <span />
                     </div>
-                    Credora
+
+                    <strong>Credora</strong>
                   </div>
 
-                  <div className="window-controls">
-                    <span />
-                    <span />
-                    <span />
+                  <div className="dashboard-top-actions">
+                    <div className="dashboard-search">
+                      <Search size={12} />
+                      Search applications
+                    </div>
+
+                    <div className="dashboard-bell">
+                      <Bell size={14} />
+                      <i />
+                    </div>
+
+                    <div className="dashboard-avatar">
+                      JK
+                    </div>
                   </div>
                 </div>
 
-                <div className="dashboard-content">
-                  <div className="dashboard-sidebar">
-                    <div className="sidebar-profile">
-                      <div className="profile-avatar">JK</div>
+                <div className="dashboard-body">
+                  <aside className="dashboard-side">
+                    <span className="side-label">
+                      WORKSPACE
+                    </span>
 
-                      <div>
-                        <strong>Credit Ops</strong>
-                        <span>Workspace</span>
-                      </div>
+                    <div className="side-link active">
+                      <Gauge size={14} />
+                      Overview
                     </div>
 
-                    <div className="sidebar-menu">
-                      <span className="active">
-                        <Gauge size={14} />
-                        Overview
-                      </span>
-
-                      <span>
-                        <FileText size={14} />
-                        Applications
-                      </span>
-
-                      <span>
-                        <ShieldCheck size={14} />
-                        Risk
-                      </span>
-
-                      <span>
-                        <BrainCircuit size={14} />
-                        Intelligence
-                      </span>
+                    <div className="side-link">
+                      <FileText size={14} />
+                      Applications
                     </div>
-                  </div>
+
+                    <div className="side-link">
+                      <Users size={14} />
+                      Customers
+                    </div>
+
+                    <span className="side-label operations">
+                      CREDIT OPERATIONS
+                    </span>
+
+                    <div className="side-link">
+                      <FileCheck2 size={14} />
+                      Documents
+                    </div>
+
+                    <div className="side-link">
+                      <ShieldCheck size={14} />
+                      Risk
+                    </div>
+
+                    <div className="side-link">
+                      <BrainCircuit size={14} />
+                      Intelligence
+                    </div>
+
+                    <div className="side-link">
+                      <Workflow size={14} />
+                      Underwriting
+                    </div>
+                  </aside>
 
                   <div className="dashboard-main">
                     <div className="dashboard-heading">
                       <div>
-                        <span className="mini-label">
-                          Portfolio overview
+                        <span>
+                          PORTFOLIO OVERVIEW
                         </span>
 
-                        <h3>Good afternoon, team.</h3>
+                        <h3>Credit operations</h3>
                       </div>
 
-                      <div className="date-chip">
+                      <div className="dashboard-period">
                         <span />
-                        Live
+                        Live portfolio
+                        <ChevronDown size={12} />
                       </div>
                     </div>
 
-                    <div className="dashboard-stats">
-                      <div className="mini-stat">
-                        <span>Total Applications</span>
+                    <div className="kpi-grid">
+                      <div className="kpi-card">
+                        <span>Applications</span>
                         <strong>1,284</strong>
+
                         <small className="positive">
-                          +12.8%
+                          <TrendingUp size={11} />
+                          12.8%
                         </small>
                       </div>
 
-                      <div className="mini-stat">
-                        <span>Approval Rate</span>
+                      <div className="kpi-card">
+                        <span>Approval rate</span>
                         <strong>72.4%</strong>
+
                         <small className="positive">
-                          +4.6%
+                          <TrendingUp size={11} />
+                          4.6%
                         </small>
                       </div>
 
-                      <div className="mini-stat">
-                        <span>High Risk</span>
+                      <div className="kpi-card">
+                        <span>Avg. processing</span>
+                        <strong>2.8d</strong>
+
+                        <small className="positive">
+                          <TrendingDown size={11} />
+                          18.2%
+                        </small>
+                      </div>
+
+                      <div className="kpi-card">
+                        <span>High risk</span>
                         <strong>8.7%</strong>
+
                         <small className="negative">
-                          -2.1%
+                          <CircleAlert size={11} />
+                          1.4%
                         </small>
                       </div>
                     </div>
 
-                    <div className="dashboard-grid">
-                      <div className="chart-card">
-                        <div className="chart-header">
+                    <div className="dashboard-content-grid">
+                      <div className="portfolio-chart">
+                        <div className="panel-heading">
                           <div>
-                            <span>Application flow</span>
-                            <strong>1,284</strong>
+                            <span>
+                              APPLICATION ACTIVITY
+                            </span>
+
+                            <strong>
+                              1,284 applications
+                            </strong>
                           </div>
 
-                          <ChevronDown size={14} />
+                          <BarChart3 size={16} />
                         </div>
 
-                        <div className="fake-chart">
-                          <div className="chart-line">
-                            <span />
-                            <span />
-                            <span />
-                            <span />
-                            <span />
-                            <span />
-                            <span />
+                        <div className="chart-area">
+                          <div className="chart-y-axis">
+                            <span>300</span>
+                            <span>200</span>
+                            <span>100</span>
+                            <span>0</span>
                           </div>
 
-                          <div className="chart-axis">
-                            <span>Mon</span>
-                            <span>Tue</span>
-                            <span>Wed</span>
-                            <span>Thu</span>
-                            <span>Fri</span>
-                            <span>Sat</span>
-                            <span>Sun</span>
-                          </div>
-                        </div>
-                      </div>
+                          <div className="chart-visual">
+                            <div className="grid-line one" />
+                            <div className="grid-line two" />
+                            <div className="grid-line three" />
 
-                      <div className="risk-card">
-                        <div className="chart-header">
-                          <span>Risk distribution</span>
-                          <ArrowUpRight size={14} />
-                        </div>
+                            <div className="activity-bars">
+                              <span style={{ height: "35%" }} />
+                              <span style={{ height: "49%" }} />
+                              <span style={{ height: "41%" }} />
+                              <span style={{ height: "67%" }} />
+                              <span style={{ height: "58%" }} />
+                              <span style={{ height: "78%" }} />
+                              <span style={{ height: "88%" }} />
+                              <span style={{ height: "72%" }} />
+                              <span style={{ height: "95%" }} />
+                              <span style={{ height: "82%" }} />
+                              <span style={{ height: "100%" }} />
+                              <span style={{ height: "91%" }} />
+                            </div>
 
-                        <div className="risk-visual">
-                          <div className="risk-ring">
-                            <div>
-                              <strong>72%</strong>
-                              <span>Low</span>
+                            <div className="chart-months">
+                              <span>Jan</span>
+                              <span>Feb</span>
+                              <span>Mar</span>
+                              <span>Apr</span>
+                              <span>May</span>
+                              <span>Jun</span>
                             </div>
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="risk-legend">
+                      <div className="risk-panel">
+                        <div className="panel-heading">
+                          <div>
+                            <span>RISK PROFILE</span>
+                            <strong>Portfolio health</strong>
+                          </div>
+
+                          <ShieldCheck size={16} />
+                        </div>
+
+                        <div className="risk-score">
+                          <div className="risk-circle">
+                            <div>
+                              <strong>72</strong>
+                              <span>Low risk</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="risk-list">
+                          <div>
                             <span>
                               <i className="low" />
-                              Low <strong>72%</strong>
+                              Low
                             </span>
+                            <strong>72%</strong>
+                          </div>
 
+                          <div>
                             <span>
                               <i className="medium" />
-                              Medium <strong>19%</strong>
+                              Medium
                             </span>
+                            <strong>19%</strong>
+                          </div>
 
+                          <div>
                             <span>
                               <i className="high" />
-                              High <strong>9%</strong>
+                              High
                             </span>
+                            <strong>9%</strong>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="ai-preview-card">
-                      <div className="ai-preview-icon">
-                        <Sparkles size={17} />
+                    <div className="dashboard-ai">
+                      <div className="ai-symbol">
+                        <Sparkles size={15} />
                       </div>
 
-                      <div className="ai-preview-content">
-                        <div className="ai-preview-title">
-                          <strong>AI insight</strong>
-                          <span>Updated moments ago</span>
+                      <div className="ai-copy">
+                        <div>
+                          <strong>
+                            Credora Intelligence
+                          </strong>
+
+                          <span>
+                            Updated now
+                          </span>
                         </div>
 
                         <p>
-                          Approval efficiency improved 14% this week.
-                          Three applications may require additional
-                          income verification.
+                          18 applications may require additional
+                          income verification before underwriting.
                         </p>
                       </div>
 
-                      <ArrowRight size={16} />
+                      <ArrowUpRight size={16} />
                     </div>
                   </div>
                 </div>
               </div>
 
               <motion.div
-                className="floating-insight-card"
-                animate={{ y: [0, -9, 0] }}
+                className="floating-ai"
+                animate={{
+                  y: [0, -7, 0],
+                }}
                 transition={{
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
               >
-                <div className="floating-icon">
-                  <Sparkles size={15} />
+                <div>
+                  <Sparkles size={16} />
                 </div>
 
-                <div>
+                <section>
                   <strong>AI recommendation</strong>
-                  <span>Low risk · 94% confidence</span>
-                </div>
+                  <span>94% confidence · Low risk</span>
+                </section>
               </motion.div>
 
               <motion.div
-                className="floating-risk-card"
-                animate={{ y: [0, 8, 0] }}
+                className="floating-sla"
+                animate={{
+                  y: [0, 7, 0],
+                }}
                 transition={{
                   duration: 4.5,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
               >
-                <CheckCircle2 size={17} />
-                <div>
-                  <strong>Verification complete</strong>
-                  <span>Application CR-10482</span>
-                </div>
+                <Clock3 size={17} />
+
+                <section>
+                  <strong>SLA performance</strong>
+                  <span>94.6% within target</span>
+                </section>
               </motion.div>
             </motion.div>
           </div>
 
           <button
-            className="hero-scroll-indicator"
-            onClick={() => scrollToSection("platform")}
+            className="hero-down"
+            onClick={() =>
+              scrollToSection("platform")
+            }
           >
-            <span>Explore the platform</span>
+            <span>Explore Credora</span>
             <ChevronDown size={17} />
           </button>
         </motion.section>
 
-        {/* Stats */}
-        <motion.section
-          className="stats-section"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.7 }}
-        >
-          <div className="stats-container">
-            <div className="stat-item">
-              <strong>01</strong>
-              <span>Unified workspace</span>
+        {/* OPERATING AREAS */}
+        <section className="operating-strip">
+          <div className="operating-inner">
+            <span className="operating-title">
+              ONE PLATFORM FOR
+            </span>
+
+            <div>
+              <Landmark size={19} />
+              Lending Operations
             </div>
 
-            <div className="stat-item">
-              <strong>05+</strong>
-              <span>Core credit stages</span>
+            <div>
+              <CreditCard size={19} />
+              Credit Teams
             </div>
 
-            <div className="stat-item">
-              <strong>AI</strong>
-              <span>Assisted decisioning</span>
+            <div>
+              <ShieldCheck size={19} />
+              Risk Management
             </div>
 
-            <div className="stat-item">
-              <strong>360°</strong>
-              <span>Application visibility</span>
+            <div>
+              <UserCheck size={19} />
+              Underwriting
+            </div>
+
+            <div>
+              <BarChart3 size={19} />
+              Operations Leadership
             </div>
           </div>
-        </motion.section>
+        </section>
 
-        {/* Platform */}
+        {/* PLATFORM */}
         <motion.section
           className="platform-section"
           id="platform"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.12 }}
-          transition={{ duration: 0.7 }}
+          initial={{
+            opacity: 0,
+            y: 35,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            amount: 0.12,
+          }}
+          transition={{
+            duration: 0.7,
+          }}
         >
           <div className="section-container">
-            <div className="section-intro">
-              <div className="section-kicker">
-                <span />
-                THE PLATFORM
+            <div className="section-header">
+              <div>
+                <div className="section-eyebrow">
+                  <span />
+                  CORE PLATFORM
+                </div>
+
+                <h2>
+                  Everything connected.
+                  <span> Nothing fragmented.</span>
+                </h2>
               </div>
 
-              <h2>
-                Everything your credit
-                <span> operation needs.</span>
-              </h2>
-
               <p>
-                Replace fragmented workflows with one connected
-                operating environment designed around the complete
-                loan lifecycle.
+                Credora creates one operational record across the
+                entire credit lifecycle so teams can work from the
+                same context.
               </p>
             </div>
 
             <div className="capability-grid">
-              {capabilityCards.map((card, index) => {
-                const Icon = card.icon;
+              {capabilities.map((item, index) => {
+                const Icon = item.icon;
 
                 return (
                   <motion.article
-                    className={`capability-card accent-${card.accent}`}
-                    key={card.number}
-                    initial={{ opacity: 0, y: 45 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{
-                      duration: 0.65,
-                      delay: index * 0.08,
+                    className="capability"
+                    key={item.title}
+                    initial={{
+                      opacity: 0,
+                      y: 35,
                     }}
-                    whileHover={{ y: -8 }}
+                    whileInView={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    viewport={{
+                      once: true,
+                      amount: 0.2,
+                    }}
+                    transition={{
+                      duration: 0.55,
+                      delay: index * 0.07,
+                    }}
+                    whileHover={{
+                      y: -7,
+                    }}
                   >
                     <div className="capability-top">
-                      <span className="capability-number">
-                        {card.number}
-                      </span>
-
                       <div className="capability-icon">
-                        <Icon size={21} />
+                        <Icon size={23} />
                       </div>
+
+                      <span>
+                        0{index + 1}
+                      </span>
                     </div>
 
-                    <div className="capability-content">
-                      <h3>{card.title}</h3>
+                    <span className="capability-eyebrow">
+                      {item.eyebrow}
+                    </span>
 
-                      <p>{card.description}</p>
+                    <h3>{item.title}</h3>
 
-                      <ul>
-                        {card.points.map((point) => (
-                          <li key={point}>
-                            <CheckCircle2 size={15} />
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
+                    <p>{item.description}</p>
+
+                    <div className="capability-features">
+                      {item.features.map((feature) => (
+                        <div key={feature}>
+                          <Check size={14} />
+                          {feature}
+                        </div>
+                      ))}
                     </div>
 
                     <button
-                      className="card-link"
-                      onClick={() => scrollToSection("intelligence")}
+                      onClick={() =>
+                        scrollToSection("intelligence")
+                      }
                     >
                       Explore capability
-                      <ArrowUpRight size={15} />
+                      <ArrowUpRight size={16} />
                     </button>
                   </motion.article>
                 );
@@ -690,167 +884,277 @@ function Home() {
           </div>
         </motion.section>
 
-        {/* Intelligence */}
+        {/* INTELLIGENCE */}
         <motion.section
           className="intelligence-section"
           id="intelligence"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.1 }}
-          transition={{ duration: 0.75 }}
+          initial={{
+            opacity: 0,
+            y: 35,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            amount: 0.1,
+          }}
+          transition={{
+            duration: 0.75,
+          }}
         >
-          <div className="intelligence-grid">
+          <div className="intelligence-container">
             <div className="intelligence-copy">
-              <div className="section-kicker light">
+              <div className="section-eyebrow light">
                 <span />
                 INTELLIGENCE LAYER
               </div>
 
               <h2>
-                AI that helps your
-                <span> team think faster.</span>
+                AI inside the workflow.
+                <span> Not outside it.</span>
               </h2>
 
               <p>
-                Credora places intelligence directly inside the credit
-                workflow. Your teams get context, explanations and
-                recommendations without losing human control.
+                Credora puts intelligence directly where credit teams
+                work. Analyze applications, understand risk and
+                surface recommendations without moving between
+                disconnected tools.
               </p>
 
-              <div className="intelligence-features">
+              <div className="intelligence-list">
                 <div>
-                  <Sparkles size={18} />
-                  <span>Application-aware AI assistant</span>
+                  <div className="feature-icon">
+                    <Sparkles size={18} />
+                  </div>
+
+                  <div>
+                    <strong>
+                      Application-aware AI
+                    </strong>
+
+                    <span>
+                      Ask questions and receive context-aware answers
+                      about an application.
+                    </span>
+                  </div>
                 </div>
 
                 <div>
-                  <Zap size={18} />
-                  <span>Explainable credit and risk insights</span>
+                  <div className="feature-icon">
+                    <Target size={18} />
+                  </div>
+
+                  <div>
+                    <strong>
+                      Explainable recommendations
+                    </strong>
+
+                    <span>
+                      Understand the signals behind credit and risk
+                      recommendations.
+                    </span>
+                  </div>
                 </div>
 
                 <div>
-                  <ShieldCheck size={18} />
-                  <span>Human-in-the-loop decision governance</span>
+                  <div className="feature-icon">
+                    <ShieldCheck size={18} />
+                  </div>
+
+                  <div>
+                    <strong>
+                      Human-controlled decisions
+                    </strong>
+
+                    <span>
+                      AI assists the team while authorized humans
+                      retain final decision authority.
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <Link to="/login" className="dark-button">
-                Explore AI intelligence
+              <Link
+                to="/login"
+                className="intelligence-button"
+              >
+                Explore intelligence
                 <ArrowRight size={17} />
               </Link>
             </div>
 
-            <div className="ai-interface">
-              <div className="ai-interface-header">
-                <div className="ai-header-title">
-                  <div className="ai-logo">
+            <div className="intelligence-interface">
+              <div className="interface-top">
+                <div className="interface-title">
+                  <div className="interface-icon">
                     <Sparkles size={17} />
                   </div>
 
                   <div>
-                    <strong>Credora Intelligence</strong>
-                    <span>Application assistant</span>
+                    <strong>
+                      Credora Intelligence
+                    </strong>
+
+                    <span>
+                      Application analysis
+                    </span>
                   </div>
                 </div>
 
-                <span className="ai-live">
+                <span className="interface-live">
                   <i />
-                  Live
+                  Active
                 </span>
               </div>
 
-              <div className="ai-interface-body">
-                <div className="ai-message ai-user">
-                  <span className="message-avatar">CO</span>
+              <div className="interface-content">
+                <div className="analysis-header">
+                  <div>
+                    <span>APPLICATION</span>
+                    <strong>CR-10482</strong>
+                  </div>
 
-                  <div className="message-bubble">
-                    Summarize the key risk factors for CR-10482.
+                  <div className="analysis-status">
+                    <CheckCircle2 size={14} />
+                    Analysis complete
                   </div>
                 </div>
 
-                <div className="ai-message">
-                  <span className="message-avatar ai">
-                    <Sparkles size={14} />
-                  </span>
+                <div className="analysis-summary">
+                  <div className="analysis-score">
+                    <div className="score-ring">
+                      <span>28</span>
+                    </div>
 
-                  <div className="message-bubble ai-bubble">
+                    <div>
+                      <span>Overall risk</span>
+                      <strong>Low risk</strong>
+                    </div>
+                  </div>
+
+                  <div className="confidence">
+                    <span>AI confidence</span>
+                    <strong>94%</strong>
+                  </div>
+                </div>
+
+                <div className="analysis-title">
+                  Key risk factors
+                </div>
+
+                <div className="factor-list">
+                  <div className="factor">
+                    <div className="factor-left">
+                      <CheckCircle2 size={16} />
+
+                      <div>
+                        <strong>
+                          Stable income profile
+                        </strong>
+
+                        <span>
+                          Positive indicator
+                        </span>
+                      </div>
+                    </div>
+
+                    <b>Positive</b>
+                  </div>
+
+                  <div className="factor">
+                    <div className="factor-left">
+                      <CheckCircle2 size={16} />
+
+                      <div>
+                        <strong>
+                          Strong repayment history
+                        </strong>
+
+                        <span>
+                          Positive indicator
+                        </span>
+                      </div>
+                    </div>
+
+                    <b>Positive</b>
+                  </div>
+
+                  <div className="factor warning">
+                    <div className="factor-left">
+                      <CircleAlert size={16} />
+
+                      <div>
+                        <strong>
+                          Recent credit enquiry
+                        </strong>
+
+                        <span>
+                          Requires review
+                        </span>
+                      </div>
+                    </div>
+
+                    <b>Review</b>
+                  </div>
+                </div>
+
+                <div className="ai-recommendation">
+                  <Sparkles size={16} />
+
+                  <div>
                     <strong>
-                      Application risk summary
+                      AI recommendation
                     </strong>
 
                     <p>
-                      The application currently presents a low-to-medium
-                      overall risk profile.
+                      Proceed to underwriting with standard verification.
+                      No critical risk indicators detected.
                     </p>
-
-                    <div className="ai-score-row">
-                      <span>Risk score</span>
-                      <strong>28 / 100</strong>
-                    </div>
-
-                    <div className="ai-factor">
-                      <span>
-                        <CheckCircle2 size={13} />
-                        Stable income
-                      </span>
-
-                      <b>Positive</b>
-                    </div>
-
-                    <div className="ai-factor">
-                      <span>
-                        <CheckCircle2 size={13} />
-                        Strong repayment history
-                      </span>
-
-                      <b>Positive</b>
-                    </div>
-
-                    <div className="ai-factor warning">
-                      <span>
-                        <CircleAlert size={13} />
-                        Recent credit enquiry
-                      </span>
-
-                      <b>Review</b>
-                    </div>
-
-                    <div className="ai-recommendation">
-                      <Sparkles size={14} />
-                      <span>
-                        Recommendation: proceed to underwriting with
-                        standard verification.
-                      </span>
-                    </div>
                   </div>
                 </div>
 
-                <div className="ai-input">
-                  <span>Ask about this application...</span>
-                  <div>
+                <div className="analysis-input">
+                  <span>
+                    Ask about this application...
+                  </span>
+
+                  <button>
                     <ArrowRight size={16} />
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </motion.section>
 
-        {/* Workflow */}
+        {/* WORKFLOW */}
         <motion.section
           className="workflow-section"
           id="workflow"
-          initial={{ opacity: 0, y: 45 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.12 }}
-          transition={{ duration: 0.75 }}
+          initial={{
+            opacity: 0,
+            y: 35,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            amount: 0.12,
+          }}
+          transition={{
+            duration: 0.7,
+          }}
         >
           <div className="section-container">
-            <div className="workflow-heading">
+            <div className="section-header">
               <div>
-                <div className="section-kicker">
+                <div className="section-eyebrow">
                   <span />
-                  CONNECTED WORKFLOW
+                  LOAN LIFECYCLE
                 </div>
 
                 <h2>
@@ -860,54 +1164,95 @@ function Home() {
               </div>
 
               <p>
-                Every stage connects to the next, giving teams a
-                continuous view of progress, risk and decision readiness.
+                Every stage carries information forward, giving
+                operations teams one continuous view of application
+                progress.
               </p>
             </div>
 
-            <div className="workflow-track">
+            <div className="workflow-visual">
               <div className="workflow-line" />
 
-              {workflowSteps.map((step, index) => (
+              {workflow.map((step, index) => (
                 <motion.div
-                  className="workflow-step"
+                  className="workflow-item"
                   key={step.number}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.3 }}
+                  initial={{
+                    opacity: 0,
+                    y: 20,
+                  }}
+                  whileInView={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  viewport={{
+                    once: true,
+                    amount: 0.3,
+                  }}
                   transition={{
                     duration: 0.5,
                     delay: index * 0.08,
                   }}
                 >
-                  <div className="workflow-node">
+                  <div className="workflow-number">
                     {step.number}
                   </div>
 
                   <div>
                     <h3>{step.title}</h3>
-                    <p>{step.description}</p>
+                    <p>{step.text}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
+
+            <div className="lifecycle-card">
+              <div className="lifecycle-icon">
+                <Workflow size={20} />
+              </div>
+
+              <div>
+                <strong>
+                  Complete loan lifecycle visibility
+                </strong>
+
+                <p>
+                  Draft → Submitted → Verification → Credit →
+                  Risk → Underwriting → Approval → Offer →
+                  Agreement → Disbursement → Active → Closed
+                </p>
+              </div>
+
+              <ArrowUpRight size={18} />
+            </div>
           </div>
         </motion.section>
 
-        {/* Governance */}
+        {/* ENTERPRISE */}
         <motion.section
-          className="governance-section"
-          id="governance"
-          initial={{ opacity: 0, y: 45 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.1 }}
-          transition={{ duration: 0.75 }}
+          className="enterprise-section"
+          id="enterprise"
+          initial={{
+            opacity: 0,
+            y: 35,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            amount: 0.1,
+          }}
+          transition={{
+            duration: 0.7,
+          }}
         >
           <div className="section-container">
-            <div className="governance-header">
-              <div className="section-kicker">
+            <div className="enterprise-intro">
+              <div className="section-eyebrow">
                 <span />
-                GOVERNANCE
+                ENTERPRISE CONTROL
               </div>
 
               <h2>
@@ -916,70 +1261,133 @@ function Home() {
               </h2>
 
               <p>
-                Powerful automation should never mean losing control.
-                Credora keeps permissions, approvals, policies and
-                decisions transparent.
+                Credit operations require more than automation.
+                Credora combines intelligence with governance,
+                permissions, approvals and complete operational
+                traceability.
               </p>
             </div>
 
-            <div className="governance-grid">
-              {governanceItems.map((item, index) => {
+            <div className="enterprise-grid">
+              {enterpriseFeatures.map((item, index) => {
                 const Icon = item.icon;
 
                 return (
                   <motion.div
-                    className="governance-card"
+                    className="enterprise-card"
                     key={item.title}
-                    initial={{ opacity: 0, y: 35 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{
-                      duration: 0.55,
-                      delay: index * 0.08,
+                    initial={{
+                      opacity: 0,
+                      y: 25,
                     }}
-                    whileHover={{ y: -5 }}
+                    whileInView={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    viewport={{
+                      once: true,
+                      amount: 0.2,
+                    }}
+                    transition={{
+                      duration: 0.5,
+                      delay: index * 0.07,
+                    }}
+                    whileHover={{
+                      y: -5,
+                    }}
                   >
-                    <div className="governance-icon">
+                    <div className="enterprise-icon">
                       <Icon size={20} />
                     </div>
 
                     <h3>{item.title}</h3>
 
-                    <p>{item.description}</p>
+                    <p>{item.text}</p>
+
+                    <span>
+                      0{index + 1}
+                    </span>
                   </motion.div>
                 );
               })}
             </div>
+
+            <div className="governance-banner">
+              <div className="governance-left">
+                <div className="governance-icon">
+                  <ShieldCheck size={23} />
+                </div>
+
+                <div>
+                  <span>AI GOVERNANCE</span>
+
+                  <strong>
+                    AI assists. Authorized humans decide.
+                  </strong>
+                </div>
+              </div>
+
+              <div className="governance-points">
+                <span>
+                  <Check size={14} />
+                  Explainable
+                </span>
+
+                <span>
+                  <Check size={14} />
+                  Auditable
+                </span>
+
+                <span>
+                  <Check size={14} />
+                  Permission-aware
+                </span>
+              </div>
+            </div>
           </div>
         </motion.section>
 
-        {/* Final CTA */}
+        {/* CTA */}
         <motion.section
-          className="final-cta-section"
-          initial={{ opacity: 0, scale: 0.98 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.7 }}
+          className="final-section"
+          initial={{
+            opacity: 0,
+          }}
+          whileInView={{
+            opacity: 1,
+          }}
+          viewport={{
+            once: true,
+            amount: 0.2,
+          }}
+          transition={{
+            duration: 0.8,
+          }}
         >
-          <div className="final-cta-glow" />
+          <div className="final-grid" />
 
-          <div className="final-cta-content">
-            <div className="section-kicker light">
+          <div className="final-glow" />
+
+          <div className="final-content">
+            <div className="section-eyebrow light">
               <span />
-              THE NEXT GENERATION OF CREDIT OPERATIONS
+              CREDORA
             </div>
 
             <h2>
-              Build a smarter
-              <span> credit operation.</span>
+              Make credit operations
+              <span> intelligent by design.</span>
             </h2>
 
             <p>
-              Bring your people, processes, data and intelligence
-              together with Credora.
+              One platform for applications, people, data,
+              intelligence and decisions.
             </p>
 
-            <Link to="/login" className="final-cta-button">
+            <Link
+              to="/login"
+              className="final-button"
+            >
               Enter Credora
               <ArrowRight size={18} />
             </Link>
@@ -987,60 +1395,98 @@ function Home() {
         </motion.section>
       </main>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="home-footer">
-        <div className="footer-main">
+        <div className="footer-inner">
           <div className="footer-brand">
-            <div className="home-brand">
-              <div className="brand-mark">
+            <button
+              className="home-logo"
+              onClick={() =>
+                window.scrollTo({
+                  top: 0,
+                  behavior: "smooth",
+                })
+              }
+            >
+              <div className="logo-symbol">
                 <span />
                 <span />
                 <span />
               </div>
 
-              <div className="brand-copy">
+              <div className="logo-text">
                 <strong>Credora</strong>
-                <span>Credit Intelligence</span>
+                <small>
+                  Credit Operations Platform
+                </small>
               </div>
-            </div>
+            </button>
 
             <p>
-              Intelligent loan origination and credit operations,
-              designed for modern financial teams.
+              Intelligent loan origination and credit operations
+              for modern financial teams.
             </p>
           </div>
 
           <div className="footer-column">
-            <span>Platform</span>
-            <button onClick={() => scrollToSection("platform")}>
+            <strong>Platform</strong>
+
+            <button
+              onClick={() =>
+                scrollToSection("platform")
+              }
+            >
               Capabilities
             </button>
-            <button onClick={() => scrollToSection("workflow")}>
-              Workflow
-            </button>
-            <button onClick={() => scrollToSection("intelligence")}>
+
+            <button
+              onClick={() =>
+                scrollToSection("intelligence")
+              }
+            >
               Intelligence
+            </button>
+
+            <button
+              onClick={() =>
+                scrollToSection("workflow")
+              }
+            >
+              Lifecycle
             </button>
           </div>
 
           <div className="footer-column">
-            <span>Enterprise</span>
-            <button onClick={() => scrollToSection("governance")}>
+            <strong>Enterprise</strong>
+
+            <button
+              onClick={() =>
+                scrollToSection("enterprise")
+              }
+            >
               Governance
             </button>
+
             <button>Security</button>
+
             <button>Administration</button>
           </div>
 
           <div className="footer-column">
-            <span>Access</span>
+            <strong>Workspace</strong>
+
             <Link to="/login">Sign in</Link>
-            <Link to="/login">Enter Credora</Link>
+
+            <Link to="/login">
+              Open workspace
+            </Link>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <span>© 2026 Credora. Intelligent credit operations.</span>
+          <span>
+            © 2026 Credora. All rights reserved.
+          </span>
 
           <div>
             <span>Privacy</span>
