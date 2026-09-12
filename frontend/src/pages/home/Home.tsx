@@ -10,14 +10,14 @@ import Hero from "./sections/Hero";
 import Lifecycle from "./sections/Lifecycle";
 import Platform from "./sections/Platform";
 import Intelligence from "./sections/Intelligence";
- import DocumentIntelligence from "./sections/DocumentIntelligence";
+import DocumentIntelligence from "./sections/DocumentIntelligence";
 import CreditRisk from "./sections/CreditRisk";
 import Underwriting from "./sections/Underwriting";
-// import Roles from "./sections/Roles";
-// import Analytics from "./sections/Analytics";
-// import Security from "./sections/Security";
-// import Integrations from "./sections/Integrations";
-// import CTA from "./sections/CTA";
+import Roles from "./sections/Roles";
+import Analytics from "./sections/Analytics";
+import Security from "./sections/Security";
+import Integrations from "./sections/Integrations";
+import CTA from "./sections/CTA";
 
 import "./Home.css";
 
@@ -103,11 +103,11 @@ function Home() {
         <DocumentIntelligence />
         <CreditRisk />
         <Underwriting />
-        {/*<Roles />
+        <Roles />
         <Analytics />
         <Security />
         <Integrations />
-        <CTA /> */}
+        <CTA />
       </main>
 
       <footer className="credora-footer">
