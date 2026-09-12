@@ -1,0 +1,57 @@
+{
+  "name": "credora-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend API for Credora - Intelligent Loan Origination & Credit Operations Platform",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:validate": "prisma validate",
+    "prisma:format": "prisma format"
+  },
+  "keywords": [
+    "credora",
+    "loan",
+    "credit",
+    "lending",
+    "finance",
+    "authentication",
+    "api"
+  ],
+  "author": "Credora",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^7.10.0",
+    "argon2": "^0.45.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.8",
+    "zod": "^4.6.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.20.2",
+    "@types/nodemailer": "^8.0.1",
+    "prisma": "^8.0.0-rc.13",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
