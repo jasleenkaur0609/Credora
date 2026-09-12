@@ -1,0 +1,990 @@
+CREDORA — PostgreSQL + Prisma Setup Commands
+==============================================================
+
+Purpose
+-------
+This is a simple learning/reference guide for the PostgreSQL and Prisma
+commands used so far while setting up Credora.
+
+It explains:
+- what each command does
+- where to run it
+- why we used it
+- what the important output means
+
+IMPORTANT SECURITY RULES
+------------------------
+- Never put a real database password in this file.
+- Never commit .env to Git.
+- Never send passwords or tokens in chat.
+- Use the PostgreSQL "postgres" account for administration only.
+- Use "credora_app" for the Credora application.
+- Prisma configuration reads the private DATABASE_URL from backend/.env.
+
+
+==============================================================
+A. POSTGRESQL — BASIC COMMANDS WE USED
+==============================================================
+
+WHERE DO I RUN THESE?
+---------------------
+SQL commands are run inside PostgreSQL.
+
+You know you are inside PostgreSQL when you see something like:
+
+    postgres=#
+or
+    credora=#
+
+Commands beginning with "\" such as \l and \du are PostgreSQL
+terminal commands (psql commands), not normal SQL.
+
+
+--------------------------------------------------------------
+1. CHECK POSTGRESQL VERSION
+--------------------------------------------------------------
+
+Command:
+
+    psql --version
+
+Meaning:
+- Shows the installed PostgreSQL command-line version.
+
+Example:
+
+    psql (PostgreSQL) 18.6
+
+Why:
+- Confirms that PostgreSQL is installed and available from PowerShell.
+
+
+--------------------------------------------------------------
+2. CONNECT TO POSTGRESQL AS ADMIN
+--------------------------------------------------------------
+
+Command:
+
+    psql -U postgres
+
+Meaning:
+- Opens the PostgreSQL command-line interface.
+- "-U postgres" means connect using the PostgreSQL user named postgres.
+
+Why:
+- The postgres user is the administrator account used for database
+  administration tasks.
+
+After successful login:
+
+    postgres=#
+
+
+--------------------------------------------------------------
+3. CREATE THE CREDORA DATABASE
+--------------------------------------------------------------
+
+Command:
+
+    CREATE DATABASE credora;
+
+Meaning:
+- Creates a new PostgreSQL database named "credora".
+
+Simple idea:
+
+    PostgreSQL
+       |
+       +--- credora
+              |
+              +--- Credora application data
+
+
+--------------------------------------------------------------
+4. CREATE THE CREDORA APPLICATION USER
+--------------------------------------------------------------
+
+Command:
+
+    CREATE USER credora_app WITH PASSWORD 'YOUR_STRONG_PASSWORD';
+
+Meaning:
+- Creates a PostgreSQL user/role named "credora_app".
+- Gives that user a password.
+
+Why:
+- The application should not normally connect using the powerful
+  postgres administrator account.
+- Credora gets its own database user.
+
+IMPORTANT:
+- Replace YOUR_STRONG_PASSWORD with your private password.
+- Never put the real password in this TXT file or Git.
+
+
+--------------------------------------------------------------
+5. GIVE credora_app ACCESS TO THE DATABASE
+--------------------------------------------------------------
+
+Command:
+
+    GRANT ALL PRIVILEGES ON DATABASE credora TO credora_app;
+
+Meaning:
+- Allows credora_app to work with the Credora database.
+
+Simple meaning:
+
+    "credora_app is allowed to use the credora database."
+
+
+--------------------------------------------------------------
+6. CONNECT TO THE CREDORA DATABASE
+--------------------------------------------------------------
+
+Command:
+
+    \c credora
+
+Meaning:
+- Switches the current psql connection to the "credora" database.
+
+You may see:
+
+    You are now connected to database "credora"...
+
+
+--------------------------------------------------------------
+7. GIVE credora_app ACCESS TO THE public SCHEMA
+--------------------------------------------------------------
+
+Command:
+
+    GRANT ALL ON SCHEMA public TO credora_app;
+
+Meaning:
+- PostgreSQL databases contain schemas.
+- "public" is the default schema.
+- This allows credora_app to work with objects such as tables
+  in the public schema.
+
+
+--------------------------------------------------------------
+8. MAKE credora_app OWNER OF public SCHEMA
+--------------------------------------------------------------
+
+Command:
+
+    ALTER SCHEMA public OWNER TO credora_app;
+
+Meaning:
+- Makes credora_app the owner of the public schema.
+- This allows the application user to manage objects in that schema.
+
+Why:
+- Prisma will create and manage Credora tables there.
+
+
+--------------------------------------------------------------
+9. LIST ALL DATABASES
+--------------------------------------------------------------
+
+Command:
+
+    \l
+
+Meaning:
+- Lists PostgreSQL databases.
+
+Important database:
+
+    credora
+
+Other standard databases may include:
+
+    postgres
+    template0
+    template1
+
+
+--------------------------------------------------------------
+10. LIST ALL POSTGRESQL USERS / ROLES
+--------------------------------------------------------------
+
+Command:
+
+    \du
+
+Meaning:
+- Lists PostgreSQL roles/users and their permissions.
+
+We currently have:
+
+    postgres
+    credora_app
+
+The Credora backend will use:
+
+    credora_app
+
+
+--------------------------------------------------------------
+11. GIVE credora_app CREATE DATABASE PERMISSION
+--------------------------------------------------------------
+
+Command:
+
+    ALTER USER credora_app CREATEDB;
+
+Meaning:
+- Allows credora_app to create databases.
+
+Why we needed it:
+- Prisma Migrate uses a temporary "shadow database" during
+  development migration checks.
+- Our first migration failed because credora_app did not have
+  permission to create that temporary database.
+
+Important:
+- This does NOT make credora_app a PostgreSQL superuser.
+- It only gives the CREATE DATABASE capability needed for our
+  local Prisma development workflow.
+
+
+--------------------------------------------------------------
+12. CHECK THE CREATE DATABASE PERMISSION
+--------------------------------------------------------------
+
+Command:
+
+    \du
+
+Meaning:
+- Shows the role attributes again.
+
+We should now see something like:
+
+    credora_app | Create DB
+
+This confirms that credora_app has the required permission.
+
+
+--------------------------------------------------------------
+13. CHANGE credora_app PASSWORD
+--------------------------------------------------------------
+
+Command:
+
+    ALTER USER credora_app WITH PASSWORD 'YOUR_NEW_STRONG_PASSWORD';
+
+Meaning:
+- Changes the password of the credora_app user.
+
+Use this if:
+- the old password was exposed
+- you want to rotate the password
+- you want to improve password security
+
+Never put the real password in this file.
+
+
+--------------------------------------------------------------
+14. EXIT POSTGRESQL
+--------------------------------------------------------------
+
+Command:
+
+    \q
+
+Meaning:
+- Exits the PostgreSQL command-line interface.
+- Returns you to PowerShell.
+
+Example:
+
+    credora=# \q
+
+Then:
+
+    PS E:\Projects\Credora\backend>
+
+
+==============================================================
+B. PRISMA — WHAT WE INSTALLED
+==============================================================
+
+Prisma is the database ORM used by the Credora Node.js backend.
+
+Simple architecture:
+
+    Credora Backend
+         |
+         v
+       Prisma
+         |
+         v
+    PostgreSQL
+         |
+         v
+      credora
+
+
+--------------------------------------------------------------
+15. INSTALL PRISMA CLI
+--------------------------------------------------------------
+
+Command:
+
+    npm install -D prisma@7.10.0
+
+Meaning:
+- Installs the Prisma command-line tool.
+- "-D" means it is installed as a development dependency.
+- We explicitly use Prisma 7.10.0.
+
+Why:
+- Prisma CLI provides commands such as:
+    npx prisma validate
+    npx prisma migrate
+    npx prisma db pull
+    npx prisma generate
+
+
+--------------------------------------------------------------
+16. INSTALL PRISMA CLIENT
+--------------------------------------------------------------
+
+Command:
+
+    npm install @prisma/client@7.10.0
+
+Meaning:
+- Installs Prisma Client.
+- Prisma Client is the code our backend will eventually use to
+  query and update PostgreSQL.
+
+Example concept:
+
+    Backend code
+        |
+        v
+    Prisma Client
+        |
+        v
+    PostgreSQL
+
+
+--------------------------------------------------------------
+17. INSTALL POSTGRESQL DRIVER ADAPTER
+--------------------------------------------------------------
+
+Command:
+
+    npm install @prisma/adapter-pg pg
+
+Meaning:
+- @prisma/adapter-pg connects Prisma to the PostgreSQL driver.
+- pg is the Node.js PostgreSQL driver.
+
+Current versions used:
+
+    @prisma/adapter-pg  7.10.0
+    pg                  8.23.0
+
+
+--------------------------------------------------------------
+18. CHECK PRISMA VERSIONS
+--------------------------------------------------------------
+
+Command:
+
+    npm list prisma @prisma/client
+
+Meaning:
+- Shows installed Prisma CLI and Prisma Client versions.
+
+Expected:
+
+    prisma@7.10.0
+    @prisma/client@7.10.0
+
+Why:
+- Keeping Prisma CLI and Prisma Client versions aligned avoids
+  compatibility problems.
+
+
+--------------------------------------------------------------
+19. INITIALIZE PRISMA
+--------------------------------------------------------------
+
+Command:
+
+    npx prisma init
+
+Meaning:
+- Initializes Prisma in the backend project.
+- Creates Prisma configuration files and supporting setup.
+
+For our project, we use:
+
+    backend/
+       |
+       +--- prisma/
+       |      |
+       |      +--- schema.prisma
+       |
+       +--- prisma.config.ts
+       |
+       +--- .env
+
+
+==============================================================
+C. CREDORA PRISMA CONFIGURATION
+==============================================================
+
+--------------------------------------------------------------
+20. prisma.config.ts
+--------------------------------------------------------------
+
+File:
+
+    backend/prisma.config.ts
+
+Our configuration:
+
+    import "dotenv/config";
+    import { defineConfig, env } from "prisma/config";
+
+    export default defineConfig({
+      schema: "prisma/schema.prisma",
+
+      migrations: {
+        path: "prisma/migrations",
+      },
+
+      datasource: {
+        url: env("DATABASE_URL"),
+      },
+    });
+
+Meaning:
+- Loads environment variables.
+- Tells Prisma where the schema is.
+- Tells Prisma where migrations should be stored.
+- Reads the PostgreSQL connection URL from DATABASE_URL.
+
+
+--------------------------------------------------------------
+21. DATABASE_URL
+--------------------------------------------------------------
+
+File:
+
+    backend/.env
+
+Structure:
+
+    DATABASE_URL="postgresql://credora_app:YOUR_PASSWORD@localhost:5432/credora?schema=public"
+
+Meaning of each part:
+
+    postgresql://
+        PostgreSQL connection type
+
+    credora_app
+        PostgreSQL application user
+
+    YOUR_PASSWORD
+        Private password for credora_app
+
+    localhost
+        PostgreSQL is running on this computer
+
+    5432
+        PostgreSQL's standard port
+
+    credora
+        Credora database
+
+    schema=public
+        Use the public schema
+
+IMPORTANT:
+- Never share the real DATABASE_URL.
+- Never commit .env.
+
+
+--------------------------------------------------------------
+22. prisma/schema.prisma
+--------------------------------------------------------------
+
+Our current foundation:
+
+    generator client {
+      provider = "prisma-client"
+      output   = "../generated/prisma"
+    }
+
+    datasource db {
+      provider = "postgresql"
+    }
+
+Meaning:
+
+generator:
+- Defines how Prisma Client is generated.
+
+provider = "prisma-client":
+- Uses the Prisma 7 Prisma Client generator.
+
+output:
+- Defines where generated Prisma Client code will be placed.
+
+datasource:
+- Tells Prisma that our database is PostgreSQL.
+
+IMPORTANT:
+- In our Prisma 7 setup, DATABASE_URL is configured in
+  prisma.config.ts rather than directly in schema.prisma.
+
+
+==============================================================
+D. PRISMA VALIDATION & DATABASE COMMANDS
+==============================================================
+
+--------------------------------------------------------------
+23. VALIDATE THE PRISMA SCHEMA
+--------------------------------------------------------------
+
+Command:
+
+    npx prisma validate
+
+Meaning:
+- Checks whether the Prisma configuration and schema are valid.
+- Does not create application tables.
+
+Successful output:
+
+    The schema at prisma\schema.prisma is valid 🚀
+
+We have successfully run this command.
+
+
+--------------------------------------------------------------
+24. TEST / INTROSPECT THE DATABASE
+--------------------------------------------------------------
+
+Command:
+
+    npx prisma db pull
+
+Meaning:
+- Connects Prisma to the database.
+- Reads existing PostgreSQL tables.
+- Converts existing database tables into Prisma models.
+
+Important:
+- This is mainly useful when a database already contains tables.
+
+Our result:
+
+    P4001 The introspected database was empty
+
+Meaning:
+- Prisma successfully reached:
+
+      PostgreSQL
+          |
+      localhost:5432
+          |
+       credora
+          |
+       public
+
+- But the database had no tables yet.
+
+This was NOT a connection failure.
+
+We do NOT want to manually create random tables just to make
+db pull work. We want Prisma schema/migrations to create our
+Credora tables.
+
+
+--------------------------------------------------------------
+25. CREATE A DEVELOPMENT MIGRATION
+--------------------------------------------------------------
+
+Command:
+
+    npx prisma migrate dev --name init_identity_access
+
+Meaning:
+- Creates a migration from schema.prisma.
+- Applies the migration to the development database.
+- Keeps a history of database changes in:
+
+      prisma/migrations/
+
+Prisma Migrate also uses a temporary shadow database to compare
+and validate migration changes during development.
+
+Our first attempt failed with:
+
+    P3014
+    permission denied to create database
+
+Why:
+- credora_app could access the credora database.
+- But it could not create Prisma's temporary shadow database.
+
+Fix:
+
+    ALTER USER credora_app CREATEDB;
+
+After granting CREATE DATABASE permission, the migration can be
+attempted again.
+
+
+==============================================================
+E. IMPORTANT PRISMA COMMANDS TO KNOW
+==============================================================
+
+These are commands we will use as Credora grows.
+
+--------------------------------------------------------------
+26. CHECK SCHEMA
+--------------------------------------------------------------
+
+    npx prisma validate
+
+Purpose:
+- Checks Prisma schema/configuration.
+- Does not normally change database tables.
+
+
+--------------------------------------------------------------
+27. CREATE + APPLY DEVELOPMENT MIGRATION
+--------------------------------------------------------------
+
+    npx prisma migrate dev --name MIGRATION_NAME
+
+Purpose:
+- Creates a migration.
+- Applies it to the development database.
+- Updates migration history.
+
+Example:
+
+    npx prisma migrate dev --name init_identity_access
+
+
+--------------------------------------------------------------
+28. GENERATE PRISMA CLIENT
+--------------------------------------------------------------
+
+    npx prisma generate
+
+Purpose:
+- Generates the Prisma Client code from schema.prisma.
+- Backend code uses this generated client to interact with
+  the database.
+
+Note:
+- Prisma may also run generation automatically during certain
+  install/migration workflows.
+
+
+--------------------------------------------------------------
+29. VIEW DATABASE WITH PRISMA STUDIO
+--------------------------------------------------------------
+
+    npx prisma studio
+
+Purpose:
+- Opens Prisma Studio, a browser-based visual database interface.
+- Useful for viewing and working with database records.
+
+Think:
+
+    PostgreSQL
+        |
+        +--- pgAdmin
+        |      visual PostgreSQL administration
+        |
+        +--- Prisma Studio
+               visual Prisma/data interface
+
+
+--------------------------------------------------------------
+30. VIEW MIGRATION STATUS
+--------------------------------------------------------------
+
+    npx prisma migrate status
+
+Purpose:
+- Shows whether local migrations and the database are in sync.
+- Useful when troubleshooting migration problems.
+
+
+--------------------------------------------------------------
+31. RESET DEVELOPMENT DATABASE
+--------------------------------------------------------------
+
+    npx prisma migrate reset
+
+Purpose:
+- Deletes/reset the development database schema.
+- Re-applies migrations.
+
+WARNING:
+- This can delete development data.
+- Do NOT use casually.
+- Never use this against a production database.
+
+
+--------------------------------------------------------------
+32. SHOW PRISMA HELP
+--------------------------------------------------------------
+
+    npx prisma --help
+
+Purpose:
+- Shows available Prisma commands and options.
+
+
+==============================================================
+F. IMPORTANT DIFFERENCE: db pull vs migrate
+==============================================================
+
+db pull:
+
+    PostgreSQL tables
+          |
+          v
+       Prisma schema
+
+Use when:
+- PostgreSQL already has tables and you want Prisma to understand them.
+
+
+migrate dev:
+
+    Prisma schema
+          |
+          v
+    Migration files
+          |
+          v
+      PostgreSQL tables
+
+Use when:
+- Prisma schema is the source of truth and you want Prisma to create
+  or change database tables.
+
+For Credora, we are following:
+
+    Prisma schema
+          ↓
+       Migration
+          ↓
+      PostgreSQL
+
+
+==============================================================
+G. CURRENT CREDORA DATABASE STRUCTURE
+==============================================================
+
+PostgreSQL 18.6
+|
++--- postgres
+|      PostgreSQL administrator
+|
++--- credora
+       |
+       +--- public schema
+       |
+       +--- credora_app
+              Application database user
+
+The application should connect using:
+
+    credora_app
+
+The postgres administrator should be reserved for administration
+and setup tasks.
+
+
+==============================================================
+H. CREDORA IAM DATABASE MODELS WE HAVE DESIGNED
+==============================================================
+
+Our first real Prisma schema contains:
+
+    User
+       |
+       +--- UserRole ------> Role
+                                |
+                                +--- RolePermission ---> Permission
+       |
+       +--- Session
+       |
+       +--- AuditLog
+
+
+User:
+- Application user identity
+- Email
+- Password hash
+- Account status
+- Email verification state
+- Password reset requirement
+- Login failure tracking
+- Lock information
+- Login timestamps
+
+Role:
+- Defines a user's role
+- Supports system and custom roles
+
+Permission:
+- Defines allowed actions such as:
+    APPLICATION_VIEW
+    APPLICATION_CREATE
+    DOCUMENT_UPLOAD
+    CREDIT_ASSESS
+    APPROVAL_APPROVE
+
+UserRole:
+- Connects users to roles.
+
+RolePermission:
+- Connects roles to permissions.
+
+Session:
+- Tracks refresh-token sessions.
+- Supports expiry and revocation.
+
+AuditLog:
+- Records security/business events for traceability.
+
+
+==============================================================
+I. COMMANDS WE SHOULD NOT CONFUSE
+==============================================================
+
+psql:
+- PostgreSQL command-line tool.
+
+npm:
+- Node.js package manager.
+
+npx:
+- Runs locally installed Node.js packages/commands.
+
+prisma:
+- Prisma command-line tool.
+
+pg:
+- Node.js PostgreSQL driver.
+
+@prisma/client:
+- Prisma Client used by backend code.
+
+@prisma/adapter-pg:
+- PostgreSQL adapter used with Prisma.
+
+
+==============================================================
+J. CURRENT PROGRESS
+==============================================================
+
+POSTGRESQL
+[✓] PostgreSQL 18.6 installed
+[✓] PostgreSQL Windows service running
+[✓] psql command working
+[✓] credora database created
+[✓] credora_app user created
+[✓] Database privileges granted
+[✓] public schema privileges granted
+[✓] public schema ownership configured
+[✓] credora_app given CREATEDB for Prisma shadow database
+
+PRISMA
+[✓] Prisma CLI 7.10.0 installed
+[✓] Prisma Client 7.10.0 installed
+[✓] @prisma/adapter-pg 7.10.0 installed
+[✓] pg 8.23.0 installed
+[✓] Prisma initialized
+[✓] prisma.config.ts configured
+[✓] DATABASE_URL configured in .env
+[✓] prisma/schema.prisma created
+[✓] Prisma schema validated
+[✓] Prisma successfully connected to PostgreSQL during db pull
+[✓] Empty database correctly detected by db pull
+[✓] IAM schema designed and validated
+[ ] First IAM migration successfully applied
+[ ] Prisma Client application integration
+[ ] Prisma Studio verification
+
+
+==============================================================
+K. SIMPLE MENTAL MODEL
+==============================================================
+
+Think of the whole setup like this:
+
+    React Frontend
+          |
+          v
+    Node + Express Backend
+          |
+          v
+        Prisma
+          |
+          v
+    PostgreSQL 18.6
+          |
+          v
+       credora
+          |
+          +--- public
+                 |
+                 +--- Credora tables
+
+
+Prisma's job:
+- Understand the database structure.
+- Create/manage migrations.
+- Generate database access code.
+- Let backend code work with PostgreSQL safely.
+
+PostgreSQL's job:
+- Store the actual application data.
+
+Express/Node's job:
+- Provide Credora APIs and business logic.
+
+React's job:
+- Provide the Credora user interface.
+
+
+==============================================================
+L. NEXT CREDORA DATABASE STEP
+==============================================================
+
+The next step is:
+
+    Prisma schema
+         ↓
+    init_identity_access migration
+         ↓
+    PostgreSQL
+         ↓
+    User / Role / Permission / Session / AuditLog tables
+
+Once the migration succeeds, we will inspect the created tables
+in pgAdmin and then configure Prisma Client for backend usage.
+
+Do not manually create Credora tables in pgAdmin unless we
+specifically decide to do so.

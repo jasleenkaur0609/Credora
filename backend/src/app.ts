@@ -1,5 +1,6 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { checkDatabaseConnection } from "./database/database.service.js";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -47,12 +48,16 @@ const generalRateLimiter = rateLimit({
 
 app.use(generalRateLimiter);
 
-app.get("/api/v1/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Credora API is running",
+app.get("/api/v1/health", async (_req, res) => {
+  const databaseConnected = await checkDatabaseConnection();
+
+  res.status(databaseConnected ? 200 : 503).json({
+    success: databaseConnected,
+    application: "Credora API",
+    database: databaseConnected ? "connected" : "disconnected",
     timestamp: new Date().toISOString(),
   });
 });
+
 
 export default app;
