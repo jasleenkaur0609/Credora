@@ -8,11 +8,11 @@ import { motion } from "framer-motion";
 
 import Hero from "./sections/Hero";
 import Lifecycle from "./sections/Lifecycle";
-// import Platform from "./sections/Platform";
-// import Intelligence from "./sections/Intelligence";
-// import DocumentIntelligence from "./sections/DocumentIntelligence";
-// import CreditRisk from "./sections/CreditRisk";
-// import Underwriting from "./sections/Underwriting";
+import Platform from "./sections/Platform";
+import Intelligence from "./sections/Intelligence";
+ import DocumentIntelligence from "./sections/DocumentIntelligence";
+import CreditRisk from "./sections/CreditRisk";
+import Underwriting from "./sections/Underwriting";
 // import Roles from "./sections/Roles";
 // import Analytics from "./sections/Analytics";
 // import Security from "./sections/Security";
@@ -98,16 +98,16 @@ function Home() {
       <main>
         <Hero />
          <Lifecycle />
-        {/*<Platform />
-        <Intelligence />
+       <Platform />
+         <Intelligence />
         <DocumentIntelligence />
         <CreditRisk />
         <Underwriting />
-        <Roles />
+        {/*<Roles />
         <Analytics />
         <Security />
         <Integrations />
-        <CTA />*/}
+        <CTA /> */}
       </main>
 
       <footer className="credora-footer">
