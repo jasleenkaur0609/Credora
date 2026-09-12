@@ -4,6 +4,7 @@ import { checkDatabaseConnection } from "./database/database.service.js";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import authRoutes from "./modules/auth/auth.routes.js";
 
 const app = express();
 
@@ -47,6 +48,7 @@ const generalRateLimiter = rateLimit({
 });
 
 app.use(generalRateLimiter);
+app.use("/api/v1/auth", authRoutes);
 
 app.get("/api/v1/health", async (_req, res) => {
   const databaseConnected = await checkDatabaseConnection();
