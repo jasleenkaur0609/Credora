@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  LOCKED
+  SUSPENDED
+  DISABLED
+}
+
+enum RoleType {
+  SYSTEM
+  CUSTOM
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum AuditEventType {
+  USER_REGISTERED
+  EMAIL_VERIFICATION_REQUESTED
+  EMAIL_VERIFIED
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  PASSWORD_CHANGED
+  SESSION_CREATED
+  SESSION_REVOKED
+  LOGOUT
+  ROLE_ASSIGNED
+  ROLE_REMOVED
+  PERMISSION_CHANGED
+}
+
+model User {
+  id                    String     @id @default(uuid()) @db.Uuid
+
+  email                 String     @unique @db.VarChar(320)
+  passwordHash          String     @map("password_hash") @db.VarChar(255)
+
+  firstName             String     @map("first_name") @db.VarChar(100)
+  lastName              String     @map("last_name") @db.VarChar(100)
+
+  status                UserStatus @default(PENDING)
+
+  isEmailVerified       Boolean    @default(false) @map("is_email_verified")
+  mustResetPassword     Boolean    @default(true) @map("must_reset_password")
+
+  failedLoginAttempts   Int        @default(0) @map("failed_login_attempts")
+  lockedUntil           DateTime?  @map("locked_until")
+
+  lastLoginAt           DateTime?  @map("last_login_at")
+  passwordChangedAt     DateTime?  @map("password_changed_at")
+
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  roles                 UserRole[]
+  sessions              Session[]
+  auditLogs             AuditLog[] @relation("AuditActor")
+
+  @@index([status])
+  @@index([lastLoginAt])
+  @@map("users")
+}
+
+model Role {
+  id                    String           @id @default(uuid()) @db.Uuid
+
+  name                  String           @unique @db.VarChar(100)
+  description           String?          @db.VarChar(500)
+
+  type                  RoleType         @default(CUSTOM)
+  isActive              Boolean          @default(true) @map("is_active")
+
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  users                 UserRole[]
+  permissions           RolePermission[]
+
+  @@index([isActive])
+  @@map("roles")
+}
+
+model Permission {
+  id                    String           @id @default(uuid()) @db.Uuid
+
+  code                  String           @unique @db.VarChar(150)
+  module                String           @db.VarChar(100)
+  action                String           @db.VarChar(100)
+  description           String?          @db.VarChar(500)
+
+  isActive              Boolean          @default(true) @map("is_active")
+
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  roles                 RolePermission[]
+
+  @@index([module])
+  @@index([action])
+  @@index([isActive])
+  @@map("permissions")
+}
+
+model UserRole {
+  id                    String    @id @default(uuid()) @db.Uuid
+
+  userId                String    @map("user_id") @db.Uuid
+  roleId                String    @map("role_id") @db.Uuid
+
+  assignedAt            DateTime  @default(now()) @map("assigned_at")
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                  Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id                    String     @id @default(uuid()) @db.Uuid
+
+  roleId                String     @map("role_id") @db.Uuid
+  permissionId          String     @map("permission_id") @db.Uuid
+
+  assignedAt            DateTime   @default(now()) @map("assigned_at")
+
+  role                  Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission            Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id                    String        @id @default(uuid()) @db.Uuid
+
+  userId                String        @map("user_id") @db.Uuid
+
+  refreshTokenHash      String        @unique @map("refresh_token_hash") @db.VarChar(255)
+
+  status                SessionStatus @default(ACTIVE)
+
+  expiresAt             DateTime      @map("expires_at")
+  revokedAt             DateTime?     @map("revoked_at")
+
+  ipAddress             String?       @map("ip_address") @db.VarChar(45)
+  userAgent             String?       @map("user_agent") @db.VarChar(1000)
+
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id                    String         @id @default(uuid()) @db.Uuid
+
+  eventType             AuditEventType @map("event_type")
+
+  actorUserId           String?        @map("actor_user_id") @db.Uuid
+
+  resourceType          String?        @map("resource_type") @db.VarChar(100)
+  resourceId            String?        @map("resource_id") @db.VarChar(100)
+
+  ipAddress             String?        @map("ip_address") @db.VarChar(45)
+  userAgent             String?        @map("user_agent") @db.VarChar(1000)
+
+  metadata              Json?
+
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  actor                 User?          @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([actorUserId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
