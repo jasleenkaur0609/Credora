@@ -60,6 +60,20 @@ export interface LoginResult {
   session: SessionInfo;
 }
 
+export interface LoginMfaChallengeResult {
+  requiresMfa: true;
+  challengeId: string;
+  expiresAt: Date;
+}
+
+export interface LoginMfaSetupRequiredResult {
+  requiresMfaSetup: true;
+  userId: string;
+}
+
+export type LoginResponse =
+  LoginResult | LoginMfaChallengeResult | LoginMfaSetupRequiredResult;
+
 export interface RefreshTokenResult {
   accessToken: string;
   refreshToken: string;

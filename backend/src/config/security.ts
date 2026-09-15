@@ -22,6 +22,19 @@ export const securityConfig = {
     resendCooldownSeconds: 60,
   },
 
+  mfa: {
+    totp: {
+      issuer: "Credora",
+      digits: 6,
+      periodSeconds: 30,
+      algorithm: "sha1" as const,
+    },
+    challenge: {
+      expirySeconds: 300,
+      maxAttempts: 5,
+    },
+  },
+
   session: {
     accessTokenMinutes: 15,
     refreshTokenDays: 7,

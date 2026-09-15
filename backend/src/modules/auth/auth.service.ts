@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+﻿import { randomBytes } from "node:crypto";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../database/prisma.js";
 import { env } from "../../config/env.js";
@@ -9,10 +9,13 @@ import { otpService } from "./otp.service.js";
 import { passwordService } from "./password.service.js";
 import { tokenService } from "./token.service.js";
 import { sessionService } from "./session.service.js";
+import { mfaService } from "./mfa.service.js";
+
 import type {
   AuthenticatedRole,
   AuthenticatedUser,
   ChangePasswordResult,
+  LoginResponse,
   LoginResult,
   LogoutResult,
   PasswordResetResult,
@@ -454,7 +457,7 @@ export class AuthService {
     input: LoginInput,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<LoginResult> {
+  ): Promise<LoginResponse> {
     const email = input.email.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
@@ -468,6 +471,8 @@ export class AuthService {
         eventType: "LOGIN_FAILED",
         severity: "WARNING",
         resourceType: "AUTHENTICATION",
+        ipAddress,
+        userAgent,
       });
 
       throw new Error(
@@ -497,6 +502,8 @@ export class AuthService {
           actorUserId: user.id,
           resourceType: "USER",
           resourceId: user.id,
+          ipAddress,
+          userAgent,
         });
       } else {
         throw new Error(
@@ -529,6 +536,8 @@ export class AuthService {
         actorUserId: user.id,
         resourceType: "USER",
         resourceId: user.id,
+        ipAddress,
+        userAgent,
       });
 
       throw new Error(
@@ -544,16 +553,15 @@ export class AuthService {
 
     /*
      * Temporary passwords are only bootstrap credentials.
-     * They must never establish a normal authenticated session.
+     * They must never establish an authenticated session.
      *
      * The user must complete the verified password-reset flow
-     * before a session can be created. This prevents a temporary
-     * password from becoming a long-lived application session.
+     * before continuing with authentication.
      */
     if (user.mustResetPassword) {
       await this.createAuditLog({
-        eventType: "LOGIN_SUCCESS",
-        severity: "INFO",
+        eventType: "LOGIN_FAILED",
+        severity: "WARNING",
         actorUserId: user.id,
         resourceType: "USER",
         resourceId: user.id,
@@ -569,19 +577,171 @@ export class AuthService {
       );
     }
 
-    const updatedUser = await prisma.user.update({
+    /*
+     * Password verification is complete, but authentication is
+     * NOT complete yet.
+     *
+     * Do not:
+     * - create a session
+     * - issue an access token
+     * - issue a refresh token
+     * - record LOGIN_SUCCESS
+     * - update lastLoginAt
+     *
+     * MFA must be completed first.
+     */
+    await prisma.user.update({
       where: {
         id: user.id,
       },
       data: {
         failedLoginAttempts: 0,
         lockedUntil: null,
-        lastLoginAt: new Date(),
       },
     });
 
-    const sessionExpiresAt =
-      this.calculateRefreshTokenExpiry();
+    const mfaStatus =
+      await mfaService.getStatus(user.id);
+
+    /*
+     * Every Credora login requires MFA.
+     *
+     * If the user has not enrolled in MFA yet, stop here and
+     * require MFA setup. No authenticated session is created.
+     */
+    if (
+      !mfaStatus.enabled ||
+      !mfaStatus.verifiedAt
+    ) {
+      return {
+        requiresMfaSetup: true,
+        userId: user.id,
+      };
+    }
+
+    /*
+     * MFA is configured and verified.
+     *
+     * Create only a short-lived MFA challenge.
+     * This challenge is NOT an authenticated session.
+     */
+    const challenge =
+      await mfaService.createChallenge(
+        user.id,
+      );
+
+    await this.createAuditLog({
+      eventType: "MFA_CHALLENGE_CREATED",
+      severity: "INFO",
+      actorUserId: user.id,
+      resourceType: "MFA_CHALLENGE",
+      resourceId: challenge.challengeId,
+      ipAddress,
+      userAgent,
+    });
+
+    return {
+      requiresMfa: true,
+      challengeId: challenge.challengeId,
+      expiresAt: challenge.expiresAt,
+    };
+  }
+  /**
+   * Verify MFA during login and establish the authenticated session.
+   *
+   * Password authentication has already succeeded and produced
+   * a short-lived MFA challenge. Only successful MFA verification
+   * is allowed to create the application session and issue tokens.
+   */
+  async verifyMfa(
+    challengeId: string,
+    token: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<LoginResult> {
+    const challenge =
+      await mfaService.getActiveChallenge(
+        challengeId,
+      );
+
+    if (!challenge) {
+      await this.createAuditLog({
+        eventType: "MFA_FAILED",
+        severity: "WARNING",
+        resourceType: "MFA_CHALLENGE",
+        resourceId: challengeId,
+        ipAddress,
+        userAgent,
+      });
+
+      throw new Error(
+        "Invalid or expired MFA challenge.",
+      );
+    }
+
+    const verified =
+      await mfaService.verifyToken(
+        challenge.userId,
+        token,
+      );
+
+    if (!verified) {
+      const attemptResult =
+        await mfaService.recordFailedAttempt(
+          challengeId,
+        );
+
+      await this.createAuditLog({
+        eventType: attemptResult.locked
+          ? "MFA_LOCKED"
+          : "MFA_FAILED",
+        severity: "WARNING",
+        actorUserId: challenge.userId,
+        resourceType: "MFA_CHALLENGE",
+        resourceId: challengeId,
+        ipAddress,
+        userAgent,
+        metadata: {
+          attempts: attemptResult.attempts,
+          locked: attemptResult.locked,
+        },
+      });
+
+      if (attemptResult.locked) {
+        throw new Error(
+          "MFA challenge is locked. Please start login again.",
+        );
+      }
+
+      throw new Error(
+        "Invalid MFA code.",
+      );
+    }
+
+    await mfaService.consumeChallenge(
+      challengeId,
+    );
+
+    const updatedUser =
+      await prisma.user.update({
+        where: {
+          id: challenge.userId,
+        },
+        data: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: new Date(),
+        },
+      });
+
+    const sessionExpiresAt = new Date(
+      Date.now() +
+        securityConfig.session.refreshTokenDays *
+          24 *
+          60 *
+          60 *
+          1000,
+    );
 
     const session =
       await sessionService.createSession({
@@ -601,6 +761,16 @@ export class AuthService {
       await this.getAuthenticatedUser(
         updatedUser.id,
       );
+
+    await this.createAuditLog({
+      eventType: "MFA_SUCCESS",
+      severity: "INFO",
+      actorUserId: updatedUser.id,
+      resourceType: "MFA_CHALLENGE",
+      resourceId: challengeId,
+      ipAddress,
+      userAgent,
+    });
 
     await this.createAuditLog({
       eventType: "LOGIN_SUCCESS",
@@ -638,7 +808,6 @@ export class AuthService {
       },
     };
   }
-
   /**
    * Refresh an access token and rotate the refresh token.
    */
@@ -1453,27 +1622,6 @@ export class AuthService {
   /**
    * Calculate refresh-token/session expiry.
    */
-  private calculateRefreshTokenExpiry(): Date {
-    const days =
-      securityConfig.session
-        .refreshTokenDays;
-
-    return new Date(
-      Date.now() +
-        days *
-          24 *
-          60 *
-          60 *
-          1000,
-    );
-  }
-
-  /**
-   * Centralized audit-log creation.
-   *
-   * Prisma 7 requires metadata to use
-   * Prisma.InputJsonValue.
-   */
   private async createAuditLog(input: {
     eventType:
       | "USER_REGISTERED"
@@ -1482,6 +1630,12 @@ export class AuthService {
       | "EMAIL_VERIFIED"
       | "LOGIN_SUCCESS"
       | "LOGIN_FAILED"
+      | "MFA_CHALLENGE_CREATED"
+      | "MFA_SUCCESS"
+      | "MFA_FAILED"
+      | "MFA_LOCKED"
+      | "MFA_ENABLED"
+      | "MFA_DISABLED"
       | "ACCOUNT_LOCKED"
       | "ACCOUNT_UNLOCKED"
       | "ACCOUNT_SUSPENDED"
@@ -1532,3 +1686,8 @@ export class AuthService {
 
 export const authService =
   new AuthService();
+
+
+
+
+

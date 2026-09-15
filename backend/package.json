@@ -26,7 +26,9 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.9",
+    "otplib": "^13.5.0",
     "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
     "zod": "^4.6.2"
   },
   "devDependencies": {
@@ -36,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.20.2",
     "@types/nodemailer": "^8.0.1",
+    "@types/qrcode": "^1.5.6",
     "prisma": "^7.10.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"

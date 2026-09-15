@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
 }
@@ -50,22 +50,6 @@ enum InvitationStatus {
   ACCEPTED
   EXPIRED
   REVOKED
-}
-
-enum MfaMethod {
-  TOTP
-}
-
-enum MfaChallengePurpose {
-  LOGIN
-  SETUP
-}
-
-enum MfaChallengeStatus {
-  ACTIVE
-  CONSUMED
-  EXPIRED
-  LOCKED
 }
 
 enum AuditEventType {
@@ -150,10 +134,6 @@ model User {
 
   disabledAt DateTime? @map("disabled_at")
 
-  mfaConfiguration MfaConfiguration?
-
-  mfaChallenges MfaChallenge[]
-
   createdAt DateTime @default(now()) @map("created_at")
 
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -183,58 +163,6 @@ model User {
  * | ROLE
  * |--------------------------------------------------------------------------
  */
-
-model MfaConfiguration {
-  id String @id @default(uuid()) @db.Uuid
-
-  userId String @unique @map("user_id") @db.Uuid
-
-  method MfaMethod @default(TOTP)
-
-  secretEncrypted String @map("secret_encrypted") @db.Text
-
-  enabled Boolean @default(false)
-
-  verifiedAt DateTime? @map("verified_at")
-
-  lastUsedAt DateTime? @map("last_used_at")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([enabled])
-  @@map("mfa_configurations")
-}
-
-model MfaChallenge {
-  id String @id @default(uuid()) @db.Uuid
-
-  userId String @map("user_id") @db.Uuid
-
-  purpose MfaChallengePurpose @default(LOGIN)
-
-  status MfaChallengeStatus @default(ACTIVE)
-
-  expiresAt DateTime @map("expires_at")
-
-  attempts Int @default(0)
-
-  maxAttempts Int @default(5) @map("max_attempts")
-
-  consumedAt DateTime? @map("consumed_at")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, purpose, status])
-  @@index([expiresAt])
-  @@index([createdAt])
-  @@map("mfa_challenges")
-}
 
 model Role {
   id String @id @default(uuid()) @db.Uuid

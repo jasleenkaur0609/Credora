@@ -1,62 +1,96 @@
 import { Router } from "express";
-import { authController } from "./auth.controller.js";
+
 import { authenticate } from "../../middleware/auth.middleware.js";
+import { authController } from "./auth.controller.js";
 
 const router = Router();
 
 /**
  * Public authentication routes
+ *
+ * These endpoints do not require a fully authenticated session.
  */
 
-// Registration
+/**
+ * Registration
+ */
 router.post(
   "/register",
   authController.register,
 );
 
-// Email verification
+/**
+ * Email verification
+ */
 router.post(
   "/verify-email",
   authController.verifyEmail,
 );
 
-// Resend email verification OTP
 router.post(
   "/resend-verification",
   authController.resendVerification,
 );
 
-// Login
+/**
+ * Login
+ *
+ * Password verification happens first.
+ *
+ * Depending on the user's security state, this can return:
+ *
+ * 1. MFA setup required
+ * 2. MFA challenge required
+ * 3. Fully authenticated session
+ */
 router.post(
   "/login",
   authController.login,
 );
 
-// Refresh access token
+/**
+ * MFA verification
+ *
+ * This is intentionally PUBLIC because the user does not
+ * have a fully authenticated session yet.
+ *
+ * The MFA challenge ID is the short-lived pre-authentication
+ * credential created by /login.
+ */
+router.post(
+  "/mfa/verify",
+  authController.verifyMfa,
+);
+
+/**
+ * Token refresh
+ */
 router.post(
   "/refresh",
   authController.refresh,
 );
 
-// Logout
+/**
+ * Logout
+ */
 router.post(
   "/logout",
   authController.logout,
 );
 
-// Forgot password
+/**
+ * Password recovery
+ */
 router.post(
   "/forgot-password",
   authController.forgotPassword,
 );
 
-// Verify password reset OTP
 router.post(
   "/verify-password-reset-otp",
   authController.verifyPasswordResetOtp,
 );
 
-// Reset password
 router.post(
   "/reset-password",
   authController.resetPassword,
@@ -64,16 +98,15 @@ router.post(
 
 /**
  * Protected authentication routes
+ *
+ * These require a fully authenticated session.
  */
-
-// Logout from all sessions
 router.post(
   "/logout-all",
   authenticate,
   authController.logoutAll,
 );
 
-// Change password
 router.post(
   "/change-password",
   authenticate,

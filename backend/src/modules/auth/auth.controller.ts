@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+﻿import type { Request, Response } from "express";
+
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -7,8 +8,10 @@ import {
   resendEmailVerificationSchema,
   resetPasswordSchema,
   verifyEmailOtpSchema,
+  verifyMfaSchema,
   verifyPasswordResetOtpSchema,
 } from "./auth.validation.js";
+
 import { authService } from "./auth.service.js";
 
 function getClientIp(
@@ -82,6 +85,9 @@ export class AuthController {
 
     this.login =
       this.login.bind(this);
+
+    this.verifyMfa =
+      this.verifyMfa.bind(this);
 
     this.refresh =
       this.refresh.bind(this);
@@ -222,6 +228,17 @@ export class AuthController {
 
   /**
    * POST /api/v1/auth/login
+   *
+   * Password verification happens first.
+   *
+   * Depending on the account's MFA state,
+   * this endpoint can return:
+   *
+   * 1. MFA setup required
+   * 2. MFA verification required
+   *
+   * A fully authenticated session is only created
+   * after successful MFA verification.
    */
   async login(
     req: Request,
@@ -247,6 +264,50 @@ export class AuthController {
           getUserAgent(req),
         );
 
+      /**
+       * MFA enrollment is required.
+       *
+       * No access token or refresh token is issued.
+       */
+      if ("requiresMfaSetup" in result) {
+        return res.status(200).json({
+          success: true,
+          message:
+            "Multi-factor authentication setup is required.",
+          data: {
+            requiresMfaSetup: true,
+            userId: result.userId,
+          },
+        });
+      }
+
+      /**
+       * Password authentication succeeded,
+       * but MFA has not yet been completed.
+       *
+       * No authenticated session exists at this point.
+       */
+      if ("requiresMfa" in result) {
+        return res.status(200).json({
+          success: true,
+          message:
+            "Multi-factor authentication is required.",
+          data: {
+            requiresMfa: true,
+            challengeId:
+              result.challengeId,
+            expiresAt:
+              result.expiresAt,
+          },
+        });
+      }
+
+      /**
+       * This branch represents a fully authenticated
+       * login response.
+       *
+       * The refresh-token cookie is created only here.
+       */
       this.setRefreshTokenCookie(
         res,
         result.tokens.refreshToken,
@@ -257,6 +318,77 @@ export class AuthController {
       return res.status(200).json({
         success: true,
         message: "Login successful.",
+        data: {
+          user: result.user,
+          accessToken:
+            result.tokens.accessToken,
+          accessTokenExpiresIn:
+            result.tokens
+              .accessTokenExpiresIn,
+          session: result.session,
+        },
+      });
+    } catch (error) {
+      return this.handleError(
+        res,
+        error,
+      );
+    }
+  }
+
+  /**
+   * POST /api/v1/auth/mfa/verify
+   *
+   * This endpoint is intentionally public because
+   * the user does not have a fully authenticated
+   * session yet.
+   *
+   * The MFA challenge is the short-lived
+   * pre-authentication credential created during login.
+   *
+   * Successful verification creates the actual
+   * authenticated session and refresh-token cookie.
+   */
+  async verifyMfa(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    const parsed =
+      verifyMfaSchema.safeParse(
+        req.body,
+      );
+
+    if (!parsed.success) {
+      return sendValidationError(
+        res,
+        parsed.error,
+      );
+    }
+
+    try {
+      const result =
+        await authService.verifyMfa(
+          parsed.data.challengeId,
+          parsed.data.token,
+          getClientIp(req),
+          getUserAgent(req),
+        );
+
+      /**
+       * The refresh token is issued only after
+       * successful MFA verification.
+       */
+      this.setRefreshTokenCookie(
+        res,
+        result.tokens.refreshToken,
+        result.tokens
+          .refreshTokenExpiresAt,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Multi-factor authentication successful.",
         data: {
           user: result.user,
           accessToken:
@@ -348,9 +480,9 @@ export class AuthController {
           refreshToken,
         );
       } catch {
-        /*
+        /**
          * Logout remains idempotent.
-         * We still clear the browser cookie.
+         * The browser cookie is still cleared.
          */
       }
     }
@@ -431,7 +563,7 @@ export class AuthController {
         parsed.data,
       );
 
-      /*
+      /**
        * Always return the same response
        * to prevent account enumeration.
        */
@@ -441,7 +573,7 @@ export class AuthController {
           "If an account exists for that email address, a password reset code has been sent.",
       });
     } catch {
-      /*
+      /**
        * Do not reveal whether the account
        * exists or whether email delivery failed.
        */
@@ -523,8 +655,8 @@ export class AuthController {
           parsed.data,
         );
 
-      /*
-       * Resetting the password revokes all
+      /**
+       * Resetting the password revokes
        * existing sessions.
        */
       this.clearRefreshTokenCookie(
@@ -584,8 +716,8 @@ export class AuthController {
           ...parsed.data,
         });
 
-      /*
-       * Password change revokes all
+      /**
+       * Password change revokes
        * existing sessions.
        */
       this.clearRefreshTokenCookie(
@@ -683,6 +815,9 @@ export class AuthController {
         "You cannot reuse a recent password.",
         "Unable to reset password.",
         "Password reset completion requires the verified reset flow.",
+        "Invalid or expired MFA challenge.",
+        "Invalid MFA code.",
+        "MFA challenge is locked. Please start login again.",
       ]);
 
     if (
@@ -692,7 +827,9 @@ export class AuthController {
         message ===
           "Invalid or expired session." ||
         message ===
-          "Invalid or expired reset token."
+          "Invalid or expired reset token." ||
+        message ===
+          "Invalid or expired MFA challenge."
           ? 401
           : 400;
 

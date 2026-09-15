@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 const emailSchema = z
   .string()
@@ -205,6 +205,25 @@ export const verifyLoginOtpSchema = z
  * Useful for service-level flows where the purpose has
  * already been established by the endpoint.
  */
+/**
+ * MFA verification during login.
+ *
+ * The challenge ID identifies the short-lived pre-authentication
+ * challenge created after successful password verification.
+ */
+export const verifyMfaSchema = z
+  .object({
+    challengeId: z
+      .string()
+      .uuid("Invalid MFA challenge ID."),
+
+    token: otpSchema,
+  })
+  .strict();
+
+export type VerifyMfaInput = z.infer<
+  typeof verifyMfaSchema
+>;
 export const verifyOtpSchema = z
   .object({
     otp: otpSchema,
