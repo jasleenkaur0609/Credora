@@ -14,7 +14,7 @@ import {
   Landmark,
   LockKeyhole,
   Network,
-  ScanSearch,
+  //ScanSearch,
   SearchCheck,
   Settings2,
   ShieldAlert,

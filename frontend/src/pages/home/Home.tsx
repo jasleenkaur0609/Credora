@@ -4,7 +4,7 @@ import {
   Menu,
   Sparkles,
 } from "lucide-react";
-import { motion } from "framer-motion";
+//import { motion } from "framer-motion";
 
 import Hero from "./sections/Hero";
 import Lifecycle from "./sections/Lifecycle";

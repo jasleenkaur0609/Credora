@@ -1,204 +1,215 @@
-import { apiClient, type ApiResponse } from "./api-client";
+import { apiClient } from "./api-client";
 
-export interface RegisterRequest {
-  email: string;
-  firstName: string;
-  lastName: string;
-}
+import type {
+  AuthenticatedUser,
+  LoginResponse,
+  MfaVerificationResponse,
+} from "../types/auth";
 
-export interface RegisterData {
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  mustResetPassword: boolean;
-  emailVerificationRequired: boolean;
-}
+/*
+ * ----------------------------------------------------------
+ * LOGIN
+ * ----------------------------------------------------------
+ */
 
-export interface VerifyEmailRequest {
-  email: string;
-  otp: string;
-}
-
-export interface VerifyEmailData {
-  success: boolean;
-  emailVerified: boolean;
-}
-
-export interface ResendVerificationRequest {
-  email: string;
-}
-
-export interface LoginRequest {
+export interface LoginPayload {
   email: string;
   password: string;
 }
 
-export interface LoginData {
-  accessToken: string;
-  accessTokenExpiresIn: string;
-  sessionId: string;
-  user: AuthUser;
-}
+/*
+ * ----------------------------------------------------------
+ * MFA
+ * ----------------------------------------------------------
+ */
 
-export interface RefreshTokenData {
-  accessToken: string;
-  accessTokenExpiresIn: string;
-  sessionId: string;
-}
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  isEmailVerified: boolean;
-  mustResetPassword: boolean;
-  roles: AuthRole[];
-  permissions: AuthPermission[];
-}
-
-export interface AuthRole {
-  id: string;
-  name: string;
-  type: string;
-}
-
-export interface AuthPermission {
-  id: string;
-  name: string;
-  module: string;
-  action: string;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface VerifyPasswordResetOtpRequest {
-  email: string;
-  otp: string;
-}
-
-export interface VerifyPasswordResetOtpData {
-  resetToken: string;
-}
-
-export interface ResetPasswordRequest {
+export interface MfaVerificationPayload {
+  challengeId: string;
   token: string;
-  password: string;
-  confirmPassword: string;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
+/*
+ * ----------------------------------------------------------
+ * AUTHENTICATED USER
+ * ----------------------------------------------------------
+ */
 
-export interface LogoutData {
+export type AuthUser = AuthenticatedUser;
+
+/*
+ * ----------------------------------------------------------
+ * LOGIN DATA
+ * ----------------------------------------------------------
+ *
+ * LoginData represents every possible response from the
+ * backend login endpoint:
+ *
+ * 1. Temporary password reset required
+ * 2. MFA setup required
+ * 3. MFA verification required
+ * 4. Fully authenticated
+ */
+
+export type LoginData = LoginResponse;
+
+/*
+ * ----------------------------------------------------------
+ * API RESPONSE
+ * ----------------------------------------------------------
+ */
+
+export interface AuthApiResponse<T> {
   success: boolean;
+  message: string;
+  data?: T;
 }
 
-export interface PasswordResetData {
-  success: boolean;
+/*
+ * ----------------------------------------------------------
+ * REFRESH SESSION
+ * ----------------------------------------------------------
+ */
+
+export interface RefreshData {
+  accessToken: string;
+  refreshToken?: string;
+  accessTokenExpiresIn: string;
+  refreshTokenExpiresAt?: string;
+  sessionId: string;
 }
 
-export interface ChangePasswordData {
-  success: boolean;
-}
+/*
+ * ----------------------------------------------------------
+ * AUTH SERVICE
+ * ----------------------------------------------------------
+ */
 
 export const authService = {
-  async register(
-    payload: RegisterRequest,
-  ): Promise<ApiResponse<RegisterData>> {
-    return apiClient.post<ApiResponse<RegisterData>>(
-      "/auth/register",
-      payload,
-    );
-  },
-
-  async verifyEmail(
-    payload: VerifyEmailRequest,
-  ): Promise<ApiResponse<VerifyEmailData>> {
-    return apiClient.post<ApiResponse<VerifyEmailData>>(
-      "/auth/verify-email",
-      payload,
-    );
-  },
-
-  async resendVerification(
-    payload: ResendVerificationRequest,
-  ): Promise<ApiResponse<unknown>> {
-    return apiClient.post<ApiResponse<unknown>>(
-      "/auth/resend-verification",
-      payload,
-    );
-  },
+  /*
+   * ========================================================
+   * LOGIN
+   * ========================================================
+   */
 
   async login(
-    payload: LoginRequest,
-  ): Promise<ApiResponse<LoginData>> {
-    return apiClient.post<ApiResponse<LoginData>>(
+    payload: LoginPayload,
+  ): Promise<AuthApiResponse<LoginData>> {
+    return apiClient.post<
+      AuthApiResponse<LoginData>
+    >(
       "/auth/login",
       payload,
     );
   },
 
-  async refresh(): Promise<ApiResponse<RefreshTokenData>> {
-    return apiClient.post<ApiResponse<RefreshTokenData>>(
+  /*
+   * ========================================================
+   * VERIFY MFA
+   * ========================================================
+   *
+   * Sends the short-lived MFA challenge ID and the user's
+   * TOTP code to the backend.
+   *
+   * The backend creates the authenticated session only after
+   * successful MFA verification.
+   */
+
+  async verifyMfa(
+    payload: MfaVerificationPayload,
+  ): Promise<
+    AuthApiResponse<MfaVerificationResponse>
+  > {
+    return apiClient.post<
+      AuthApiResponse<MfaVerificationResponse>
+    >(
+      "/auth/mfa/verify",
+      payload,
+    );
+  },
+
+  /*
+   * ========================================================
+   * REFRESH SESSION
+   * ========================================================
+   *
+   * The refresh token is sent automatically through the
+   * HttpOnly cookie because apiClient uses:
+   *
+   * credentials: "include"
+   */
+
+  async refresh(): Promise<
+    AuthApiResponse<RefreshData>
+  > {
+    return apiClient.post<
+      AuthApiResponse<RefreshData>
+    >(
       "/auth/refresh",
     );
   },
 
-  async logout(): Promise<ApiResponse<LogoutData>> {
-    return apiClient.post<ApiResponse<LogoutData>>(
+  /*
+   * ========================================================
+   * LOGOUT
+   * ========================================================
+   */
+
+  async logout(): Promise<
+    AuthApiResponse<{
+      success: boolean;
+    }>
+  > {
+    return apiClient.post<
+      AuthApiResponse<{
+        success: boolean;
+      }>
+    >(
       "/auth/logout",
     );
   },
 
-  async logoutAll(): Promise<ApiResponse<LogoutData>> {
-    return apiClient.post<ApiResponse<LogoutData>>(
+  /*
+   * ========================================================
+   * LOGOUT ALL SESSIONS
+   * ========================================================
+   */
+
+  async logoutAll(): Promise<
+    AuthApiResponse<{
+      success: boolean;
+    }>
+  > {
+    return apiClient.post<
+      AuthApiResponse<{
+        success: boolean;
+      }>
+    >(
       "/auth/logout-all",
     );
   },
 
-  async forgotPassword(
-    payload: ForgotPasswordRequest,
-  ): Promise<ApiResponse<unknown>> {
-    return apiClient.post<ApiResponse<unknown>>(
-      "/auth/forgot-password",
-      payload,
-    );
-  },
+  /*
+   * ========================================================
+   * CURRENT USER
+   * ========================================================
+   *
+   * The backend /auth/me endpoint will be implemented as
+   * part of the session restoration / protected-route work.
+   */
 
-  async verifyPasswordResetOtp(
-    payload: VerifyPasswordResetOtpRequest,
-  ): Promise<ApiResponse<VerifyPasswordResetOtpData>> {
-    return apiClient.post<ApiResponse<VerifyPasswordResetOtpData>>(
-      "/auth/verify-password-reset-otp",
-      payload,
-    );
-  },
-
-  async resetPassword(
-    payload: ResetPasswordRequest,
-  ): Promise<ApiResponse<PasswordResetData>> {
-    return apiClient.post<ApiResponse<PasswordResetData>>(
-      "/auth/reset-password",
-      payload,
-    );
-  },
-
-  async changePassword(
-    payload: ChangePasswordRequest,
+  async getCurrentUser(
     accessToken: string,
-  ): Promise<ApiResponse<ChangePasswordData>> {
-    return apiClient.post<ApiResponse<ChangePasswordData>>(
-      "/auth/change-password",
-      payload,
+  ): Promise<
+    AuthApiResponse<{
+      user: AuthenticatedUser;
+    }>
+  > {
+    return apiClient.get<
+      AuthApiResponse<{
+        user: AuthenticatedUser;
+      }>
+    >(
+      "/auth/me",
       {
         accessToken,
       },

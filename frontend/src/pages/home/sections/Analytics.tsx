@@ -26,7 +26,7 @@ import {
   CartesianGrid,
   Cell,
   Line,
-  LineChart,
+  //LineChart,
   Pie,
   PieChart as RechartsPieChart,
   ResponsiveContainer,
