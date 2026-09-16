@@ -1,4 +1,7 @@
-import type { RoleType, UserStatus } from "../../../generated/prisma/client.js";
+import type {
+  RoleType,
+  UserStatus,
+} from "../../../generated/prisma/client.js";
 
 export interface AuthenticatedPermission {
   id: string;
@@ -60,6 +63,12 @@ export interface LoginResult {
   session: SessionInfo;
 }
 
+export interface TemporaryPasswordLoginResult {
+  requiresPasswordReset: true;
+  resetToken: string;
+  expiresAt: Date;
+}
+
 export interface LoginMfaChallengeResult {
   requiresMfa: true;
   challengeId: string;
@@ -68,11 +77,29 @@ export interface LoginMfaChallengeResult {
 
 export interface LoginMfaSetupRequiredResult {
   requiresMfaSetup: true;
-  userId: string;
+  setupChallengeId: string;
+  expiresAt: Date;
 }
 
 export type LoginResponse =
-  LoginResult | LoginMfaChallengeResult | LoginMfaSetupRequiredResult;
+  | LoginResult
+  | TemporaryPasswordLoginResult
+  | LoginMfaChallengeResult
+  | LoginMfaSetupRequiredResult;
+
+export interface MfaSetupResult {
+  challengeId: string;
+  method: "TOTP";
+  secret: string;
+  otpauthUrl: string;
+  qrCodeDataUrl: string;
+  expiresAt: Date;
+}
+
+export interface MfaSetupVerificationResult {
+  success: boolean;
+  enabled: boolean;
+}
 
 export interface RefreshTokenResult {
   accessToken: string;

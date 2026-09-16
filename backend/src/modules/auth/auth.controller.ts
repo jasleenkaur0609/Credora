@@ -1,18 +1,24 @@
-﻿import type { Request, Response } from "express";
+﻿import type {
+  Request,
+  Response,
+} from "express";
 
 import {
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
+  mfaSetupSchema,
   registerSchema,
   resendEmailVerificationSchema,
   resetPasswordSchema,
   verifyEmailOtpSchema,
   verifyMfaSchema,
+  verifyMfaSetupSchema,
   verifyPasswordResetOtpSchema,
 } from "./auth.validation.js";
 
 import { authService } from "./auth.service.js";
+import { env } from "../../config/env.js";
 
 function getClientIp(
   req: Request,
@@ -20,7 +26,9 @@ function getClientIp(
   const forwardedFor =
     req.headers["x-forwarded-for"];
 
-  if (typeof forwardedFor === "string") {
+  if (
+    typeof forwardedFor === "string"
+  ) {
     return forwardedFor
       .split(",")[0]
       ?.trim();
@@ -36,7 +44,10 @@ function getClientIp(
 function getUserAgent(
   req: Request,
 ): string | undefined {
-  return req.get("user-agent") ?? undefined;
+  return (
+    req.get("user-agent") ??
+    undefined
+  );
 }
 
 function sendValidationError(
@@ -64,15 +75,12 @@ function sendValidationError(
 function getRefreshToken(
   req: Request,
 ): string | undefined {
-  return req.cookies?.credora_refresh_token;
+  return req.cookies?.[
+    env.sessionCookieName
+  ];
 }
 
 export class AuthController {
-  /**
-   * Bind controller methods once so Express
-   * always invokes them with the correct
-   * AuthController context.
-   */
   constructor() {
     this.register =
       this.register.bind(this);
@@ -85,6 +93,12 @@ export class AuthController {
 
     this.login =
       this.login.bind(this);
+
+    this.setupMfa =
+      this.setupMfa.bind(this);
+
+    this.verifyMfaSetup =
+      this.verifyMfaSetup.bind(this);
 
     this.verifyMfa =
       this.verifyMfa.bind(this);
@@ -102,7 +116,9 @@ export class AuthController {
       this.forgotPassword.bind(this);
 
     this.verifyPasswordResetOtp =
-      this.verifyPasswordResetOtp.bind(this);
+      this.verifyPasswordResetOtp.bind(
+        this,
+      );
 
     this.resetPassword =
       this.resetPassword.bind(this);
@@ -111,9 +127,6 @@ export class AuthController {
       this.changePassword.bind(this);
   }
 
-  /**
-   * POST /api/v1/auth/register
-   */
   async register(
     req: Request,
     res: Response,
@@ -150,9 +163,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/verify-email
-   */
   async verifyEmail(
     req: Request,
     res: Response,
@@ -189,9 +199,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/resend-verification
-   */
   async resendVerification(
     req: Request,
     res: Response,
@@ -227,18 +234,18 @@ export class AuthController {
   }
 
   /**
-   * POST /api/v1/auth/login
+   * Password authentication stage.
    *
-   * Password verification happens first.
+   * Possible responses:
    *
-   * Depending on the account's MFA state,
-   * this endpoint can return:
+   * 1. Password reset required
+   * 2. MFA setup required
+   * 3. MFA verification required
+   * 4. Fully authenticated response
    *
-   * 1. MFA setup required
-   * 2. MFA verification required
-   *
-   * A fully authenticated session is only created
-   * after successful MFA verification.
+   * Only the final response sets the refresh-token
+   * cookie because only that state represents a
+   * fully authenticated session.
    */
   async login(
     req: Request,
@@ -265,29 +272,60 @@ export class AuthController {
         );
 
       /**
-       * MFA enrollment is required.
+       * Temporary password flow.
        *
-       * No access token or refresh token is issued.
+       * No authenticated session is created.
        */
-      if ("requiresMfaSetup" in result) {
+      if (
+        "requiresPasswordReset" in
+        result
+      ) {
+        return res.status(200).json({
+          success: true,
+          message:
+            "Password reset is required before you can continue.",
+          data: {
+            requiresPasswordReset:
+              true,
+            resetToken:
+              result.resetToken,
+            expiresAt:
+              result.expiresAt,
+          },
+        });
+      }
+
+      /**
+       * First-time MFA enrollment.
+       *
+       * No authenticated session exists yet.
+       */
+      if (
+        "requiresMfaSetup" in
+        result
+      ) {
         return res.status(200).json({
           success: true,
           message:
             "Multi-factor authentication setup is required.",
           data: {
             requiresMfaSetup: true,
-            userId: result.userId,
+            setupChallengeId:
+              result.setupChallengeId,
+            expiresAt:
+              result.expiresAt,
           },
         });
       }
 
       /**
-       * Password authentication succeeded,
-       * but MFA has not yet been completed.
+       * Existing MFA challenge.
        *
-       * No authenticated session exists at this point.
+       * No authenticated session exists yet.
        */
-      if ("requiresMfa" in result) {
+      if (
+        "requiresMfa" in result
+      ) {
         return res.status(200).json({
           success: true,
           message:
@@ -303,10 +341,8 @@ export class AuthController {
       }
 
       /**
-       * This branch represents a fully authenticated
-       * login response.
-       *
-       * The refresh-token cookie is created only here.
+       * Only this branch creates the authenticated
+       * refresh-token cookie.
        */
       this.setRefreshTokenCookie(
         res,
@@ -337,17 +373,94 @@ export class AuthController {
   }
 
   /**
-   * POST /api/v1/auth/mfa/verify
+   * Generate TOTP setup information.
    *
-   * This endpoint is intentionally public because
-   * the user does not have a fully authenticated
-   * session yet.
+   * A valid short-lived SETUP challenge
+   * authorizes this operation.
+   */
+  async setupMfa(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    const parsed =
+      mfaSetupSchema.safeParse(
+        req.body,
+      );
+
+    if (!parsed.success) {
+      return sendValidationError(
+        res,
+        parsed.error,
+      );
+    }
+
+    try {
+      const result =
+        await authService.setupMfa(
+          parsed.data.challengeId,
+        );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "MFA setup information generated.",
+        data: result,
+      });
+    } catch (error) {
+      return this.handleError(
+        res,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Verify the first TOTP during MFA enrollment.
+   */
+  async verifyMfaSetup(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    const parsed =
+      verifyMfaSetupSchema.safeParse(
+        req.body,
+      );
+
+    if (!parsed.success) {
+      return sendValidationError(
+        res,
+        parsed.error,
+      );
+    }
+
+    try {
+      const result =
+        await authService.verifyMfaSetup(
+          parsed.data.challengeId,
+          parsed.data.token,
+          getClientIp(req),
+          getUserAgent(req),
+        );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Multi-factor authentication has been enabled. Please sign in again.",
+        data: result,
+      });
+    } catch (error) {
+      return this.handleError(
+        res,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Verify MFA during normal login.
    *
-   * The MFA challenge is the short-lived
-   * pre-authentication credential created during login.
-   *
-   * Successful verification creates the actual
-   * authenticated session and refresh-token cookie.
+   * Successful verification creates the
+   * authenticated session.
    */
   async verifyMfa(
     req: Request,
@@ -374,10 +487,6 @@ export class AuthController {
           getUserAgent(req),
         );
 
-      /**
-       * The refresh token is issued only after
-       * successful MFA verification.
-       */
       this.setRefreshTokenCookie(
         res,
         result.tokens.refreshToken,
@@ -407,9 +516,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/refresh
-   */
   async refresh(
     req: Request,
     res: Response,
@@ -464,9 +570,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/logout
-   */
   async logout(
     req: Request,
     res: Response,
@@ -480,10 +583,7 @@ export class AuthController {
           refreshToken,
         );
       } catch {
-        /**
-         * Logout remains idempotent.
-         * The browser cookie is still cleared.
-         */
+        // Logout remains idempotent.
       }
     }
 
@@ -497,11 +597,6 @@ export class AuthController {
     });
   }
 
-  /**
-   * POST /api/v1/auth/logout-all
-   *
-   * Requires authentication middleware.
-   */
   async logoutAll(
     req: Request,
     res: Response,
@@ -539,9 +634,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/forgot-password
-   */
   async forgotPassword(
     req: Request,
     res: Response,
@@ -562,35 +654,17 @@ export class AuthController {
       await authService.requestPasswordReset(
         parsed.data,
       );
-
-      /**
-       * Always return the same response
-       * to prevent account enumeration.
-       */
-      return res.status(200).json({
-        success: true,
-        message:
-          "If an account exists for that email address, a password reset code has been sent.",
-      });
     } catch {
-      /**
-       * Do not reveal whether the account
-       * exists or whether email delivery failed.
-       */
-      return res.status(200).json({
-        success: true,
-        message:
-          "If an account exists for that email address, a password reset code has been sent.",
-      });
+      // Deliberately generic.
     }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "If an account exists for that email address, a password reset code has been sent.",
+    });
   }
 
-  /**
-   * POST /api/v1/auth/verify-password-reset-otp
-   *
-   * Verifies the PASSWORD_RESET OTP and
-   * returns a short-lived reset token.
-   */
   async verifyPasswordResetOtp(
     req: Request,
     res: Response,
@@ -630,9 +704,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/reset-password
-   */
   async resetPassword(
     req: Request,
     res: Response,
@@ -655,10 +726,6 @@ export class AuthController {
           parsed.data,
         );
 
-      /**
-       * Resetting the password revokes
-       * existing sessions.
-       */
       this.clearRefreshTokenCookie(
         res,
       );
@@ -677,11 +744,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/change-password
-   *
-   * Requires authentication middleware.
-   */
   async changePassword(
     req: Request,
     res: Response,
@@ -716,10 +778,6 @@ export class AuthController {
           ...parsed.data,
         });
 
-      /**
-       * Password change revokes
-       * existing sessions.
-       */
       this.clearRefreshTokenCookie(
         res,
       );
@@ -738,22 +796,18 @@ export class AuthController {
     }
   }
 
-  /**
-   * Set the secure refresh-token cookie.
-   */
   private setRefreshTokenCookie(
     res: Response,
     refreshToken: string,
     expiresAt: Date,
   ): void {
     res.cookie(
-      "credora_refresh_token",
+      env.sessionCookieName,
       refreshToken,
       {
         httpOnly: true,
         secure:
-          process.env.NODE_ENV ===
-          "production",
+          env.nodeEnv === "production",
         sameSite: "lax",
         expires: expiresAt,
         path: "/api/v1/auth",
@@ -761,32 +815,21 @@ export class AuthController {
     );
   }
 
-  /**
-   * Clear the refresh-token cookie.
-   */
   private clearRefreshTokenCookie(
     res: Response,
   ): void {
     res.clearCookie(
-      "credora_refresh_token",
+      env.sessionCookieName,
       {
         httpOnly: true,
         secure:
-          process.env.NODE_ENV ===
-          "production",
+          env.nodeEnv === "production",
         sameSite: "lax",
         path: "/api/v1/auth",
       },
     );
   }
 
-  /**
-   * Convert known authentication
-   * failures into safe API responses.
-   *
-   * Internal errors are never exposed
-   * to the client.
-   */
   private handleError(
     res: Response,
     error: unknown,
@@ -814,10 +857,12 @@ export class AuthController {
         "Current password is incorrect.",
         "You cannot reuse a recent password.",
         "Unable to reset password.",
-        "Password reset completion requires the verified reset flow.",
         "Invalid or expired MFA challenge.",
         "Invalid MFA code.",
         "MFA challenge is locked. Please start login again.",
+        "Invalid or expired MFA setup challenge.",
+        "MFA setup is not available for this account.",
+        "MFA setup challenge is locked. Please start login again.",
       ]);
 
     if (
@@ -829,7 +874,9 @@ export class AuthController {
         message ===
           "Invalid or expired reset token." ||
         message ===
-          "Invalid or expired MFA challenge."
+          "Invalid or expired MFA challenge." ||
+        message ===
+          "Invalid or expired MFA setup challenge."
           ? 401
           : 400;
 

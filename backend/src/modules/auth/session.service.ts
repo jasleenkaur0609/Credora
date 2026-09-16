@@ -49,6 +49,9 @@ export class SessionService {
    * Find an active session using the raw refresh token.
    *
    * The database is queried using the token hash.
+   *
+   * This method is ONLY for refresh-token based
+   * session lookup.
    */
   async findActiveSession(refreshToken: string) {
     const refreshTokenHash =
@@ -104,9 +107,70 @@ export class SessionService {
   }
 
   /**
+   * Find an active session using the session ID
+   * contained inside a verified access token.
+   *
+   * This method MUST NOT use the refresh-token hash.
+   *
+   * It is used by protected API requests after the
+   * access JWT has already been cryptographically verified.
+   */
+  async findActiveSessionById(
+    sessionId: string,
+  ) {
+    const session = await prisma.session.findUnique({
+      where: {
+        id: sessionId,
+      },
+      include: {
+        user: {
+          include: {
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    permissions: {
+                      include: {
+                        permission: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    if (session.status !== "ACTIVE") {
+      return null;
+    }
+
+    if (session.expiresAt <= new Date()) {
+      await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: "EXPIRED",
+        },
+      });
+
+      return null;
+    }
+
+    return session;
+  }
+
+  /**
    * Rotate a refresh token.
    *
-   * The previous session token becomes unusable and a new
+   * The previous refresh token becomes unusable and a new
    * refresh token is generated.
    */
   async rotateSession(

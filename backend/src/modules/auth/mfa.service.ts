@@ -27,6 +27,8 @@ export interface MfaChallengeResult {
   expiresAt: Date;
 }
 
+type MfaChallengePurpose = "LOGIN" | "SETUP";
+
 export class MfaService {
   async generateSetup(
     userId: string,
@@ -43,11 +45,14 @@ export class MfaService {
       period: securityConfig.mfa.totp.periodSeconds,
     });
 
-    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl, {
-      errorCorrectionLevel: "M",
-      margin: 2,
-      width: 320,
-    });
+    const qrCodeDataUrl = await QRCode.toDataURL(
+      otpauthUrl,
+      {
+        errorCorrectionLevel: "M",
+        margin: 2,
+        width: 320,
+      },
+    );
 
     const secretEncrypted = encryptSecret(secret);
 
@@ -229,13 +234,14 @@ export class MfaService {
 
   async createChallenge(
     userId: string,
-    purpose: "LOGIN" | "SETUP" = "LOGIN",
+    purpose: MfaChallengePurpose = "LOGIN",
   ): Promise<MfaChallengeResult> {
     const now = new Date();
 
     const expiresAt = new Date(
       now.getTime() +
-        securityConfig.mfa.challenge.expirySeconds * 1000,
+        securityConfig.mfa.challenge.expirySeconds *
+          1000,
     );
 
     await prisma.mfaChallenge.updateMany({
@@ -270,7 +276,7 @@ export class MfaService {
 
   async getActiveChallenge(
     challengeId: string,
-    purpose: "LOGIN" | "SETUP" = "LOGIN",
+    purpose: MfaChallengePurpose = "LOGIN",
   ) {
     const challenge =
       await prisma.mfaChallenge.findFirst({
@@ -285,10 +291,13 @@ export class MfaService {
       return null;
     }
 
-    if (challenge.expiresAt <= new Date()) {
-      await prisma.mfaChallenge.update({
+    const now = new Date();
+
+    if (challenge.expiresAt <= now) {
+      await prisma.mfaChallenge.updateMany({
         where: {
           id: challenge.id,
+          status: "ACTIVE",
         },
         data: {
           status: "EXPIRED",
@@ -298,10 +307,14 @@ export class MfaService {
       return null;
     }
 
-    if (challenge.attempts >= challenge.maxAttempts) {
-      await prisma.mfaChallenge.update({
+    if (
+      challenge.attempts >=
+      challenge.maxAttempts
+    ) {
+      await prisma.mfaChallenge.updateMany({
         where: {
           id: challenge.id,
+          status: "ACTIVE",
         },
         data: {
           status: "LOCKED",
@@ -334,40 +347,126 @@ export class MfaService {
       };
     }
 
-    const attempts = challenge.attempts + 1;
+    /**
+     * Atomically increment the attempt counter.
+     *
+     * The WHERE clause ensures that an already locked,
+     * consumed, or expired challenge cannot receive
+     * another attempt.
+     */
+    const updated =
+      await prisma.mfaChallenge.updateMany({
+        where: {
+          id: challengeId,
+          status: "ACTIVE",
+          attempts: {
+            lt: challenge.maxAttempts,
+          },
+        },
+        data: {
+          attempts: {
+            increment: 1,
+          },
+        },
+      });
+
+    if (updated.count !== 1) {
+      const current =
+        await prisma.mfaChallenge.findUnique({
+          where: {
+            id: challengeId,
+          },
+          select: {
+            attempts: true,
+            maxAttempts: true,
+            status: true,
+          },
+        });
+
+      return {
+        attempts:
+          current?.attempts ??
+          challenge.maxAttempts,
+        locked:
+          !current ||
+          current.status !== "ACTIVE" ||
+          (current.attempts >=
+            current.maxAttempts),
+      };
+    }
+
+    const current =
+      await prisma.mfaChallenge.findUnique({
+        where: {
+          id: challengeId,
+        },
+        select: {
+          attempts: true,
+          maxAttempts: true,
+          status: true,
+        },
+      });
+
+    if (!current) {
+      return {
+        attempts: challenge.maxAttempts,
+        locked: true,
+      };
+    }
 
     const locked =
-      attempts >= challenge.maxAttempts;
+      current.attempts >=
+      current.maxAttempts;
 
-    await prisma.mfaChallenge.update({
-      where: {
-        id: challengeId,
-      },
-      data: {
-        attempts,
-        status: locked ? "LOCKED" : "ACTIVE",
-      },
-    });
+    if (locked) {
+      await prisma.mfaChallenge.updateMany({
+        where: {
+          id: challengeId,
+          status: "ACTIVE",
+          attempts: {
+            gte: current.maxAttempts,
+          },
+        },
+        data: {
+          status: "LOCKED",
+        },
+      });
+    }
 
     return {
-      attempts,
+      attempts: current.attempts,
       locked,
     };
   }
 
   async consumeChallenge(
     challengeId: string,
-  ): Promise<void> {
-    await prisma.mfaChallenge.update({
-      where: {
-        id: challengeId,
-      },
-      data: {
-        status: "CONSUMED",
-        consumedAt: new Date(),
-      },
-    });
+  ): Promise<boolean> {
+    /**
+     * Consumption is intentionally conditional.
+     *
+     * Only an ACTIVE challenge can transition to
+     * CONSUMED. This prevents a second concurrent
+     * request from consuming the same challenge again.
+     */
+    const result =
+      await prisma.mfaChallenge.updateMany({
+        where: {
+          id: challengeId,
+          status: "ACTIVE",
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        data: {
+          status: "CONSUMED",
+          consumedAt: new Date(),
+        },
+      });
+
+    return result.count === 1;
   }
 }
 
-export const mfaService = new MfaService();
+export const mfaService =
+  new MfaService();

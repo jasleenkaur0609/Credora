@@ -105,6 +105,13 @@ enum AuditEventType {
   OTP_FAILED
   OTP_EXPIRED
 
+  MFA_CHALLENGE_CREATED
+  MFA_SUCCESS
+  MFA_FAILED
+  MFA_LOCKED
+  MFA_ENABLED
+  MFA_DISABLED
+
   SECURITY_POLICY_CHANGED
 }
 
@@ -180,7 +187,7 @@ model User {
 
 /**
  * |--------------------------------------------------------------------------
- * | ROLE
+ * | MFA CONFIGURATION
  * |--------------------------------------------------------------------------
  */
 
@@ -209,6 +216,12 @@ model MfaConfiguration {
   @@map("mfa_configurations")
 }
 
+/**
+ * |--------------------------------------------------------------------------
+ * | MFA CHALLENGE
+ * |--------------------------------------------------------------------------
+ */
+
 model MfaChallenge {
   id String @id @default(uuid()) @db.Uuid
 
@@ -235,6 +248,12 @@ model MfaChallenge {
   @@index([createdAt])
   @@map("mfa_challenges")
 }
+
+/**
+ * |--------------------------------------------------------------------------
+ * | ROLE
+ * |--------------------------------------------------------------------------
+ */
 
 model Role {
   id String @id @default(uuid()) @db.Uuid

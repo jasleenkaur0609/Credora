@@ -6,22 +6,14 @@ import { authController } from "./auth.controller.js";
 const router = Router();
 
 /**
- * Public authentication routes
- *
- * These endpoints do not require a fully authenticated session.
+ * Public authentication routes.
  */
 
-/**
- * Registration
- */
 router.post(
   "/register",
   authController.register,
 );
 
-/**
- * Email verification
- */
 router.post(
   "/verify-email",
   authController.verifyEmail,
@@ -33,15 +25,7 @@ router.post(
 );
 
 /**
- * Login
- *
- * Password verification happens first.
- *
- * Depending on the user's security state, this can return:
- *
- * 1. MFA setup required
- * 2. MFA challenge required
- * 3. Fully authenticated session
+ * Password authentication stage.
  */
 router.post(
   "/login",
@@ -49,37 +33,44 @@ router.post(
 );
 
 /**
- * MFA verification
+ * MFA enrollment.
  *
- * This is intentionally PUBLIC because the user does not
- * have a fully authenticated session yet.
+ * These endpoints use a short-lived SETUP challenge.
+ * They do NOT require a normal authenticated session.
+ */
+router.post(
+  "/mfa/setup",
+  authController.setupMfa,
+);
+
+router.post(
+  "/mfa/setup/verify",
+  authController.verifyMfaSetup,
+);
+
+/**
+ * MFA login verification.
  *
- * The MFA challenge ID is the short-lived pre-authentication
- * credential created by /login.
+ * This endpoint creates the full authenticated
+ * session only after successful TOTP verification.
  */
 router.post(
   "/mfa/verify",
   authController.verifyMfa,
 );
 
-/**
- * Token refresh
- */
 router.post(
   "/refresh",
   authController.refresh,
 );
 
-/**
- * Logout
- */
 router.post(
   "/logout",
   authController.logout,
 );
 
 /**
- * Password recovery
+ * Password recovery.
  */
 router.post(
   "/forgot-password",
@@ -97,9 +88,7 @@ router.post(
 );
 
 /**
- * Protected authentication routes
- *
- * These require a fully authenticated session.
+ * Protected authentication routes.
  */
 router.post(
   "/logout-all",
