@@ -1,11 +1,14 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
+
+// ============================================================
+// ENUMS
+// ============================================================
 
 enum UserStatus {
   ACTIVE
@@ -28,6 +31,10 @@ enum RelationshipType {
   CO_APPLICANT
 }
 
+// ============================================================
+// ORGANIZATION
+// ============================================================
+
 model Organization {
   id        String   @id @default(uuid())
   name      String
@@ -42,6 +49,10 @@ model Organization {
 
   @@index([isActive])
 }
+
+// ============================================================
+// BRANCH
+// ============================================================
 
 model Branch {
   id             String   @id @default(uuid())
@@ -66,20 +77,38 @@ model Branch {
   @@index([isActive])
 }
 
+// ============================================================
+// USER
+// ============================================================
+
 model User {
-  id              String     @id @default(uuid())
-  organizationId  String
-  branchId        String?
-  firebaseUid     String     @unique
-  email           String     @unique
-  firstName       String
-  lastName        String?
-  phone           String?
-  status          UserStatus @default(ACTIVE)
-  isEmailVerified Boolean    @default(false)
-  lastLoginAt     DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  organizationId String
+  branchId       String?
+  firebaseUid    String     @unique
+  email          String     @unique
+  firstName      String
+  lastName       String?
+  phone          String?
+  status         UserStatus @default(ACTIVE)
+
+  isEmailVerified Boolean @default(false)
+
+  // First-login security
+  mustResetPassword Boolean @default(false)
+
+  // Multi-factor authentication
+  mfaEnabled Boolean @default(false)
+
+  // Account protection
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  // Login tracking
+  lastLoginAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   branch       Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -89,7 +118,12 @@ model User {
   @@index([organizationId])
   @@index([branchId])
   @@index([status])
+  @@index([email])
 }
+
+// ============================================================
+// ROLE
+// ============================================================
 
 model Role {
   id          String   @id @default(uuid())
@@ -102,6 +136,10 @@ model Role {
   userRoles       UserRole[]
   rolePermissions RolePermission[]
 }
+
+// ============================================================
+// PERMISSION
+// ============================================================
 
 model Permission {
   id          String   @id @default(uuid())
@@ -117,6 +155,10 @@ model Permission {
   @@index([action])
 }
 
+// ============================================================
+// USER ROLE
+// ============================================================
+
 model UserRole {
   id        String   @id @default(uuid())
   userId    String
@@ -131,6 +173,10 @@ model UserRole {
   @@index([roleId])
 }
 
+// ============================================================
+// ROLE PERMISSION
+// ============================================================
+
 model RolePermission {
   id           String   @id @default(uuid())
   roleId       String
@@ -144,6 +190,10 @@ model RolePermission {
   @@index([roleId])
   @@index([permissionId])
 }
+
+// ============================================================
+// CUSTOMER
+// ============================================================
 
 model Customer {
   id             String         @id @default(uuid())
@@ -172,6 +222,10 @@ model Customer {
   @@index([status])
 }
 
+// ============================================================
+// CUSTOMER RELATIONSHIP
+// ============================================================
+
 model CustomerRelationship {
   id                String           @id @default(uuid())
   customerId        String
@@ -187,18 +241,26 @@ model CustomerRelationship {
   @@index([relatedCustomerId])
 }
 
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String?
-  customerId  String?
+  id         String  @id @default(uuid())
+  userId     String?
+  customerId String?
+
   action      String
   resource    String
   resourceId  String?
   description String?
-  ipAddress   String?
-  userAgent   String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+
+  ipAddress String?
+  userAgent String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
 
   user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
